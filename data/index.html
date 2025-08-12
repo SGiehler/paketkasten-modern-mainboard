@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Paketkasten Setup</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --primary-color: #007bff;
+    --primary-color-hover: #0056b3;
+    --danger-color: #dc3545;
+    --danger-color-hover: #c82333;
+    --light-bg: #f8f9fa;
+    --dark-bg: #212529;
+    --light-color: #212529;
+    --dark-color: #f8f9fa;
+    --light-border: #dee2e6;
+    --dark-border: #495057;
+    --light-input-bg: #fff;
+    --dark-input-bg: #343a40;
+    --success-color: #28a745;
+    --off-color: #6c757d;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: var(--light-bg);
+    color: var(--light-color);
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    box-sizing: border-box;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 600px;
+  }
+
+  h1, h2 {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  h1 {
+    font-size: 2.5rem;
+  }
+  
+  h2 {
+    font-size: 1.75rem;
+    border-bottom: 1px solid var(--light-border);
+    padding-bottom: 10px;
+    margin-top: 20px;
+  }
+
+  .box {
+    background-color: var(--light-input-bg);
+    padding: 20px 30px 30px 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+  }
+
+  label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+  }
+
+  input[type="text"],
+  input[type="password"],
+  input[type="number"],
+  input[type="range"] {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    border: 1px solid var(--light-border);
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 1rem;
+  }
+
+  .btn {
+    display: inline-block;
+    font-weight: 400;
+    text-align: center;
+    vertical-align: middle;
+    cursor: pointer;
+    border: 1px solid transparent;
+    padding: 12px 20px;
+    font-size: 1rem;
+    border-radius: 4px;
+    text-decoration: none;
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 10px;
+  }
+
+  .btn-primary {
+    color: #fff;
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+  }
+
+  .btn-primary:hover {
+    background-color: var(--primary-color-hover);
+    border-color: var(--primary-color-hover);
+  }
+  
+  .code-entry {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  
+  .code-entry input {
+    flex: 1;
+    margin-right: 10px;
+    margin-bottom: 0;
+  }
+  
+  .remove-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    background-color: var(--danger-color);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.2rem;
+    line-height: 1;
+  }
+  
+  .remove-btn:hover {
+    background-color: var(--danger-color-hover);
+  }
+  
+  .diagnostics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+  }
+  
+  .diagnostic-item {
+    background: var(--light-bg);
+    padding: 15px;
+    border-radius: 5px;
+    border: 1px solid var(--light-border);
+  }
+  
+  .diagnostic-item .label {
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+  
+  .diagnostic-item .value {
+    font-family: monospace;
+  }
+  
+  .status-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 8px;
+  }
+  
+  .status-on {
+    background-color: var(--success-color);
+  }
+  
+  .status-off {
+    background-color: var(--off-color);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    body {
+      background-color: var(--dark-bg);
+      color: var(--dark-color);
+    }
+    .box {
+      background-color: var(--dark-input-bg);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    }
+    h2 {
+      border-bottom-color: var(--dark-border);
+    }
+    input[type="text"],
+    input[type="password"],
+    input[type="number"] {
+      background-color: #212529;
+      color: var(--dark-color);
+      border-color: var(--dark-border);
+    }
+    .diagnostic-item {
+      background: var(--dark-bg);
+      border-color: var(--dark-border);
+    }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Paketkasten Setup</h1>
+  
+  <div class="box">
+    <h2>Diagnostics</h2>
+    <div class="diagnostics-grid">
+      <div class="diagnostic-item">
+        <div class="label">Closed Switch</div>
+        <div class="value"><span id="closedSwitch" class="status-indicator status-off"></span><span id="closedSwitchText"></span></div>
+      </div>
+      <div class="diagnostic-item">
+        <div class="label">Parcel Switch</div>
+        <div class="value"><span id="parcelSwitch" class="status-indicator status-off"></span><span id="parcelSwitchText"></span></div>
+      </div>
+      <div class="diagnostic-item">
+        <div class="label">Mail Switch</div>
+        <div class="value"><span id="mailSwitch" class="status-indicator status-off"></span><span id="mailSwitchText"></span></div>
+      </div>
+      <div class="diagnostic-item">
+        <div class="label">Mailbox State</div>
+        <div class="value" id="mailboxState">-</div>
+      </div>
+      <div class="diagnostic-item">
+        <div class="label">Last Wiegand ID</div>
+        <div class="value" id="scannedId">-</div>
+      </div>
+      <div class="diagnostic-item">
+        <div class="label">Actions</div>
+        <div class="value">
+          <button type="button" class="btn btn-primary" style="margin-bottom: 5px;" onclick="openMailbox('parcel')">Open Parcel</button>
+          <button type="button" class="btn btn-primary" onclick="openMailbox('all')">Open Mail</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <form class="box" action="/save" method="post">
+    <h2>WiFi</h2>
+    <label for="ssid">SSID:</label>
+    <input type="text" id="ssid" name="ssid">
+    <label for="password">Password:</label>
+    <input type="password" id="password" name="password">
+
+    <h2>Wiegand</h2>
+    <div id="ownerCodes">
+      <label>Owner Codes:</label>
+    </div>
+    <button type="button" class="btn btn-primary" onclick="addCode('owner')">Add Owner Code</button>
+    
+    <div id="deliveryCodes" style="margin-top: 20px;">
+      <label>Delivery Codes:</label>
+    </div>
+    <button type="button" class="btn btn-primary" onclick="addCode('delivery')">Add Delivery Code</button>
+
+    <input type="hidden" id="ownerCodesJson" name="ownerCodes">
+    <input type="hidden" id="deliveryCodesJson" name="deliveryCodes">
+
+    <h2>MQTT</h2>
+    <label for="mqttServer">Server:</label>
+    <input type="text" id="mqttServer" name="mqttServer">
+    <label for="mqttPort">Port:</label>
+    <input type="number" id="mqttPort" name="mqttPort" value="1883">
+    <label for="mqttUser">User:</label>
+    <input type="text" id="mqttUser" name="mqttUser">
+    <label for="mqttPassword">Password:</label>
+    <input type="password" id="mqttPassword" name="mqttPassword">
+
+    <h2>Duty Cycles</h2>
+    <div class="label">Open: <output for="dutyCycleOpen" id="dutyCycleOpenValue"></output></div>
+    <input type="range" id="dutyCycleOpen" name="dutyCycleOpen" min="0" max="255">
+
+    <div class="label">Close: <output for="dutyCycleClose" id="dutyCycleCloseValue"></output></div>
+    <input type="range" id="dutyCycleClose" name="dutyCycleClose" min="0" max="255">
+
+    <input type="submit" class="btn btn-primary" value="Save Configuration">
+  </form>
+</div>
+
+<script>
+  function openMailbox(type) {
+    fetch('/open', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: 'type=' + type
+    })
+    .then(response => {
+      if (!response.ok) {
+        console.error('Error opening mailbox');
+      }
+    })
+    .catch(error => console.error('Error opening mailbox:', error));
+  }
+
+  function fetchDiagnostics() {
+    fetch('/diagnostics')
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('mailboxState').textContent = data.mailbox_state || '-';
+        document.getElementById('scannedId').textContent = data.wiegand_id || '-';
+        
+        updateSwitchStatus('closedSwitch', data.closed_switch);
+        updateSwitchStatus('parcelSwitch', data.parcel_switch);
+        updateSwitchStatus('mailSwitch', data.mail_switch);
+      })
+      .catch(error => console.error('Error fetching diagnostics:', error));
+  }
+  
+  function updateSwitchStatus(elementId, status) {
+    const indicator = document.getElementById(elementId);
+    const text = document.getElementById(elementId + 'Text');
+    if (status) {
+      indicator.classList.remove('status-off');
+      indicator.classList.add('status-on');
+      text.textContent = 'Active';
+    } else {
+      indicator.classList.remove('status-on');
+      indicator.classList.add('status-off');
+      text.textContent = 'Inactive';
+    }
+  }
+
+  setInterval(fetchDiagnostics, 2000);
+  fetchDiagnostics();
+
+  function createCodeEntry(type, label = '', code = '') {
+    const container = document.getElementById(type + 'Codes');
+    const codeDiv = document.createElement('div');
+    codeDiv.className = 'code-entry';
+    codeDiv.innerHTML = `
+      <input type="text" placeholder="Label" class="label-input" value="${label}" />
+      <input type="text" placeholder="Code" class="code-input" value="${code}" />
+      <button type="button" class="remove-btn" onclick="removeCode(this)">&times;</button>
+    `;
+    container.appendChild(codeDiv);
+  }
+  
+  function addCode(type) {
+    createCodeEntry(type);
+  }
+
+  function removeCode(button) {
+    button.parentElement.remove();
+  }
+
+  function loadConfig() {
+    fetch('/config')
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('ssid').value = data.ssid || '';
+        document.getElementById('mqttServer').value = data.mqttServer || '';
+        document.getElementById('mqttPort').value = data.mqttPort || 1883;
+        document.getElementById('mqttUser').value = data.mqttUser || '';
+        document.getElementById('dutyCycleOpen').value = data.dutyCycleOpen || 150;
+        document.getElementById('dutyCycleOpenValue').value = data.dutyCycleOpen || 150;
+        document.getElementById('dutyCycleClose').value = data.dutyCycleClose || 120;
+        document.getElementById('dutyCycleCloseValue').value = data.dutyCycleClose || 120;
+
+        const ownerCodes = JSON.parse(data.ownerCodes || '[]');
+        ownerCodes.forEach(code => createCodeEntry('owner', code.label, code.code));
+
+        const deliveryCodes = JSON.parse(data.deliveryCodes || '[]');
+        deliveryCodes.forEach(code => createCodeEntry('delivery', code.label, code.code));
+      })
+      .catch(error => console.error('Error fetching config:', error));
+  }
+
+  document.querySelector('form').addEventListener('submit', function(e) {
+    const ownerCodes = [];
+    document.querySelectorAll('#ownerCodes .code-entry').forEach(entry => {
+      const label = entry.querySelector('.label-input').value;
+      const code = entry.querySelector('.code-input').value;
+      if (code) { // Only add if code is not empty
+        ownerCodes.push({ label: label, code: code });
+      }
+    });
+    document.getElementById('ownerCodesJson').value = JSON.stringify(ownerCodes);
+
+    const deliveryCodes = [];
+    document.querySelectorAll('#deliveryCodes .code-entry').forEach(entry => {
+      const label = entry.querySelector('.label-input').value;
+      const code = entry.querySelector('.code-input').value;
+      if (code) { // Only add if code is not empty
+        deliveryCodes.push({ label: label, code: code });
+      }
+    });
+    document.getElementById('deliveryCodesJson').value = JSON.stringify(deliveryCodes);
+  });
+
+  document.getElementById('dutyCycleOpen').addEventListener('input', function(e) {
+    document.getElementById('dutyCycleOpenValue').value = e.target.value;
+  });
+
+  document.getElementById('dutyCycleClose').addEventListener('input', function(e) {
+    document.getElementById('dutyCycleCloseValue').value = e.target.value;
+  });
+
+  loadConfig();
+</script>
+</body>
+</html>
