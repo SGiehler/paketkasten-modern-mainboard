@@ -10,6 +10,7 @@
 #include <FS.h>
 #include <LittleFS.h>
 #include <ArduinoJson.h>
+#include <Bounce2.h>
 
 // Pin definitions
 const int MOTOR_PIN_1 = 33;
@@ -22,15 +23,21 @@ const int MAIL_SWITCH_PIN = 4;
 const int WIEGAND_D0_PIN = 27;
 const int WIEGAND_D1_PIN = 26;
 
+// Bounce Buttons
+Bounce2::Button closedSwitch = Bounce2::Button();
+Bounce2::Button parcelSwitch = Bounce2::Button();
+Bounce2::Button mailSwitch = Bounce2::Button();
+int debounceDelay = 1; // in ms
+
 // Inverting flags
-const bool INVERT_MOTOR_DIRECTION = false;
 const bool INVERT_SWITCH_STATE = false;
 const char* SOFTAP_PASSWORD = "tuVlZfEr5^p!fcUH0QWU";
 
 // Movement Settings
 const int PWM_FREQ = 50000;
-const int FULL_POWER_MS = 5;
-const int RAMP_DOWN_MS = 15;
+const int FULL_POWER_MS = 20;
+const int FULL_POWER_DUTY_CYCLE = 160;
+const int RAMP_DOWN_MS = 10;
 
 MailboxState currentState = LOCKED;
 Wiegand wiegand;
@@ -40,8 +47,10 @@ Config config;
 WiFiClient wifiClient;
 PubSubClient mqttClient(wifiClient);
 char lastScannedWiegandId[20] = "";
+char lastUsed[50] = "unknown";
 unsigned long openStateEnterTime = 0;
 unsigned long motorStartTime = 0;
+
 
 // Function declarations
 void setupMotor();
@@ -66,6 +75,7 @@ void publishState();
 void mqttCallback(char* topic, byte* payload, unsigned int length);
 
 void setup() {
+  setCpuFrequencyMhz(160);
   Serial.begin(115200);
   Serial.println("Booting...");
   if(!LittleFS.begin()){
@@ -104,7 +114,6 @@ void loop() {
   }
 
   loopMotor();
-  delay(5);
   loopLeds();
   loopSwitches();
   loopWiegand();
@@ -122,8 +131,8 @@ void loadConfiguration() {
   config.mqttPort = preferences.getInt(MQTT_PORT_KEY, 1883);
   config.mqttUser = preferences.getString(MQTT_USER_KEY, "");
   config.mqttPassword = preferences.getString(MQTT_PASSWORD_KEY, "");
-  config.dutyCycleOpen = preferences.getInt(DUTY_CYCLE_OPEN_KEY, 150);
-  config.dutyCycleClose = preferences.getInt(DUTY_CYCLE_CLOSE_KEY, 120);
+  config.dutyCycleOpen = preferences.getInt(DUTY_CYCLE_OPEN_KEY, 120);
+  config.dutyCycleClose = preferences.getInt(DUTY_CYCLE_CLOSE_KEY, 90);
   preferences.end();
 }
 
@@ -159,9 +168,17 @@ void setupLeds() {
 }
 
 void setupSwitches() {
-  pinMode(CLOSED_SWITCH_PIN, INPUT);
-  pinMode(PARCEL_SWITCH_PIN, INPUT);
-  pinMode(MAIL_SWITCH_PIN, INPUT);
+  closedSwitch.attach( CLOSED_SWITCH_PIN, INPUT );
+  parcelSwitch.attach( PARCEL_SWITCH_PIN, INPUT );
+  mailSwitch.attach( MAIL_SWITCH_PIN, INPUT );
+
+  closedSwitch.interval( debounceDelay );
+  parcelSwitch.interval( debounceDelay );
+  mailSwitch.interval( debounceDelay );
+
+  closedSwitch.setPressedState( (INVERT_SWITCH_STATE ? HIGH : LOW) );
+  parcelSwitch.setPressedState( (INVERT_SWITCH_STATE ? HIGH : LOW) );
+  mailSwitch.setPressedState( (INVERT_SWITCH_STATE ? HIGH : LOW) );
 }
 
 void setupWiegand() {
@@ -206,7 +223,7 @@ void setupWebServer() {
     config.dutyCycleClose = request->arg("dutyCycleClose").toInt();
     saveConfiguration();
     Serial.println("Configuration saved. Restarting...");
-    request->send(200, "text/plain", "Configuration saved. Please restart the device.");
+    request->send(LittleFS, "/saved.html", "text/html");
     delay(1000);
     ESP.restart();
   });
@@ -229,11 +246,13 @@ void setupWebServer() {
       if (type == "parcel") {
         if (currentState == LOCKED) {
           Serial.println("Web command: OPEN_PARCEL. State -> OPENING_TO_PARCEL");
+          strncpy(lastUsed, "webinterface", sizeof(lastUsed) - 1);
           currentState = OPENING_TO_PARCEL;
         }
       } else if (type == "all") {
         if (currentState == LOCKED) {
           Serial.println("Web command: OPEN_ALL. State -> OPENING_TO_MAIL");
+          strncpy(lastUsed, "webinterface", sizeof(lastUsed) - 1);
           currentState = OPENING_TO_MAIL;
         }
       }
@@ -259,7 +278,7 @@ void setupWebServer() {
       Serial.print(".");
     }
     if (WiFi.status() == WL_CONNECTED) {
-        Serial.println("\nConnected to WiFi");
+        Serial.println("Connected to WiFi");
         Serial.print("IP address: ");
         Serial.println(WiFi.localIP());
         connected = true;
@@ -287,7 +306,7 @@ void setupMqtt() {
 }
 
 void loopMotor() {
-  static MailboxState lastMotorState = (MailboxState)-1; // To detect state changes
+  static MailboxState lastMotorState = (MailboxState)-1;
 
   if ((currentState == OPENING_TO_PARCEL || currentState == OPENING_TO_MAIL || currentState == LOCKING) && lastMotorState != currentState) {
       motorStartTime = millis();
@@ -306,32 +325,26 @@ void loopMotor() {
     case OPENING_TO_MAIL:
       dutyCycle = config.dutyCycleOpen;
       if (elapsedTime < FULL_POWER_MS) {
-        dutyCycle = 255;
+        dutyCycle = FULL_POWER_DUTY_CYCLE;
       } else if (elapsedTime < (RAMP_DOWN_MS + FULL_POWER_MS)) {
         dutyCycle = 255 - (255 - config.dutyCycleOpen) * (elapsedTime - 100) / RAMP_DOWN_MS;
       }
-      if (INVERT_MOTOR_DIRECTION) {
-        analogWrite(MOTOR_PIN_1, 0);
-        analogWrite(MOTOR_PIN_2, dutyCycle);
-      } else {
-        analogWrite(MOTOR_PIN_1, dutyCycle);
-        analogWrite(MOTOR_PIN_2, 0);
-      }
+
+      analogWrite(MOTOR_PIN_1, dutyCycle);
+      analogWrite(MOTOR_PIN_2, 0);
+
       break;
     case LOCKING:
       dutyCycle = config.dutyCycleClose;
       if (elapsedTime < FULL_POWER_MS) {
-        dutyCycle = 255;
+        dutyCycle = FULL_POWER_DUTY_CYCLE;
       } else if (elapsedTime < (RAMP_DOWN_MS + FULL_POWER_MS)) { 
         dutyCycle = 255 - (255 - config.dutyCycleClose) * (elapsedTime - 50) / RAMP_DOWN_MS;
       }
-      if (INVERT_MOTOR_DIRECTION) {
-        analogWrite(MOTOR_PIN_1, dutyCycle);
-        analogWrite(MOTOR_PIN_2, 0);
-      } else {
-        analogWrite(MOTOR_PIN_1, 0);
-        analogWrite(MOTOR_PIN_2, dutyCycle);
-      }
+
+      analogWrite(MOTOR_PIN_1, 0);
+      analogWrite(MOTOR_PIN_2, dutyCycle);
+
       break;
     case LOCKED:
     case PARCEL_OPEN:
@@ -368,26 +381,26 @@ void loopLeds() {
 }
 
 void loopSwitches() {
-  bool closedSwitch = digitalRead(CLOSED_SWITCH_PIN) == (INVERT_SWITCH_STATE ? HIGH : LOW);
-  bool parcelSwitch = digitalRead(PARCEL_SWITCH_PIN) == (INVERT_SWITCH_STATE ? HIGH : LOW);
-  bool mailSwitch = digitalRead(MAIL_SWITCH_PIN) == (INVERT_SWITCH_STATE ? HIGH : LOW);
+  closedSwitch.update();
+  parcelSwitch.update();
+  mailSwitch.update();
   static MailboxState lastState = currentState;
 
   switch (currentState) {
     case OPENING_TO_PARCEL:
-      if (parcelSwitch) {
+      if (parcelSwitch.pressed()) {
         currentState = PARCEL_OPEN;
         openStateEnterTime = millis();
       }
       break;
     case OPENING_TO_MAIL:
-      if (mailSwitch) {
+      if (mailSwitch.pressed()) {
         currentState = MAIL_OPEN;
         openStateEnterTime = millis();
       }
       break;
     case LOCKING:
-      if (closedSwitch) {
+      if (closedSwitch.pressed()) {
         currentState = LOCKED;
       }
       break;
@@ -412,7 +425,7 @@ void loopWiegand() {
     Serial.print("Wiegand code received: ");
     Serial.println(codeStr);
     strncpy(lastScannedWiegandId, codeStr, sizeof(lastScannedWiegandId) - 1);
-    lastScannedWiegandId[sizeof(lastScannedWiegandId) - 1] = '\0';
+    lastScannedWiegandId[sizeof(lastScannedWiegandId) - 1] = ' ';
 
     if (currentState == LOCKED) {
       JsonDocument doc;
@@ -423,6 +436,7 @@ void loopWiegand() {
         for (JsonObject obj : array) {
           if (String(obj["code"]) == String(codeStr)) {
             Serial.println("Owner code matched. State -> OPENING_TO_MAIL");
+            strncpy(lastUsed, obj["label"], sizeof(lastUsed) - 1);
             currentState = OPENING_TO_MAIL;
             return; 
           }
@@ -435,6 +449,7 @@ void loopWiegand() {
         for (JsonObject obj : array) {
           if (String(obj["code"]) == String(codeStr)) {
             Serial.println("Delivery code matched. State -> OPENING_TO_PARCEL");
+            strncpy(lastUsed, obj["label"], sizeof(lastUsed) - 1);
             currentState = OPENING_TO_PARCEL;
             return;
           }
@@ -462,11 +477,13 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     if (message == "OPEN_PARCEL") {
       if (currentState == LOCKED) {
         Serial.println("MQTT command: OPEN_PARCEL. State -> OPENING_TO_PARCEL");
+        strncpy(lastUsed, "mqtt", sizeof(lastUsed) - 1);
         currentState = OPENING_TO_PARCEL;
       }
     } else if (message == "OPEN_MAIL") {
       if (currentState == LOCKED) {
         Serial.println("MQTT command: OPEN_MAIL. State -> OPENING_TO_TO_MAIL");
+        strncpy(lastUsed, "mqtt", sizeof(lastUsed) - 1);
         currentState = OPENING_TO_MAIL;
       }
     } else if (message == "CLOSE") {
@@ -481,10 +498,14 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
 void publishState() {
   if (mqttClient.connected()) {
     String stateTopic = "paketkasten/state";
-    String state = getMailboxStateString();
+    JsonDocument doc;
+    doc["state"] = getMailboxStateString();
+    doc["last_used"] = lastUsed;
+    String output;
+    serializeJson(doc, output);
     Serial.print("Publishing state to MQTT: ");
-    Serial.println(state);
-    mqttClient.publish(stateTopic.c_str(), state.c_str());
+    Serial.println(output);
+    mqttClient.publish(stateTopic.c_str(), output.c_str());
   }
 }
 
