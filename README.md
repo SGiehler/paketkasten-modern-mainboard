@@ -52,6 +52,10 @@ Ein Blick auf die speziell entwickelte Hauptplatine:
 
 [![Watch the video](https://img.youtube.com/vi/utgJOUfKkKk/hqdefault.jpg)](https://youtube.com/shorts/utgJOUfKkKk?feature=share)
 
+Prototyp in Aktion
+
+[![Watch the video](https://img.youtube.com/vi/s8VNXXUlV3o/hqdefault.jpg)](https://www.youtube.com/watch?v=s8VNXXUlV3o)
+
 ## Mitwirken
 
 Wir freuen uns über Beiträge zur Weiterentwicklung dieses Projekts. Ob Fehlerbehebungen, neue Funktionen oder Verbesserungen der Dokumentation – jede Hilfe ist willkommen.
