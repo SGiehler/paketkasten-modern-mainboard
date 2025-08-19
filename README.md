@@ -41,6 +41,12 @@ Ein Blick auf die speziell entwickelte Hauptplatine:
 
 ![PCB Unterseite](doc/images/PCB_BOTTOM_rev2.png)
 
+## Videos
+
+[![Watch the video](https://img.youtube.com/vi/pZjXSTFkWTE/hqdefault.jpg)](https://youtube.com/shorts/pZjXSTFkWTE?feature=share)
+
+[![Watch the video](https://img.youtube.com/vi/utgJOUfKkKk/hqdefault.jpg)](https://youtube.com/shorts/utgJOUfKkKk?feature=share)
+
 ## Mitwirken
 
 Wir freuen uns über Beiträge zur Weiterentwicklung dieses Projekts. Ob Fehlerbehebungen, neue Funktionen oder Verbesserungen der Dokumentation – jede Hilfe ist willkommen.
