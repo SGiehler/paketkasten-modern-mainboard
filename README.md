@@ -12,6 +12,7 @@ Dieses Projekt wurde ins Leben gerufen, um dem DHL Paketkasten, der von DHL zum 
 *   **MQTT-Integration:** Binden Sie Ihren Paketkasten nahtlos in Ihr Smart-Home-System ein.
 *   **WLAN-Konnektivität:** Verbinden Sie den Paketkasten einfach mit Ihrem heimischen WLAN.
 *   **Universelle Kompatibilität:** Nutzen Sie eine breite Palette von Wiegand-basierten Zugangsgeräten wie RFID-Leser oder PIN-Tastaturen.
+*   **Kompatible Hardware:** Eine Liste der getesteten Wiegand-Geräte finden Sie in der [Wiegand-Hardware-Dokumentation](wiegand-hardware.md).
 
 ## Wichtige Hinweise
 
