@@ -43,7 +43,11 @@ Ein Blick auf die speziell entwickelte Hauptplatine:
 
 ## Videos
 
+Öffnen des Brieffachs mit RFID-Leser
+
 [![Watch the video](https://img.youtube.com/vi/pZjXSTFkWTE/hqdefault.jpg)](https://youtube.com/shorts/pZjXSTFkWTE?feature=share)
+
+Öffnen des Paketfachs mit Code
 
 [![Watch the video](https://img.youtube.com/vi/utgJOUfKkKk/hqdefault.jpg)](https://youtube.com/shorts/utgJOUfKkKk?feature=share)
 
