@@ -63,3 +63,11 @@ Wir freuen uns über Beiträge zur Weiterentwicklung dieses Projekts. Ob Fehlerb
 ## Lizenz
 
 Dieses Projekt steht unter der [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International Lizenz](https://creativecommons.org/licenses/by-nc-sa/4.0/).
+
+## Haftungsausschluss
+
+:warning: **GEFAHR EINES STROMSCHLAGS** :warning:
+
+Wenn Ihr Gerät an das Stromnetz angeschlossen wird, besteht die Gefahr eines Stromschlags, wenn es nicht ordnungsgemäß installiert wird. Wenn Sie nicht wissen, wie man es installiert, rufen Sie bitte einen Elektriker an (***Achtung:*** In bestimmten Ländern ist die Installation ohne einen lizenzierten Elektriker verboten). Denken Sie daran: _**SICHERHEIT GEHT VOR**_. Es ist das Risiko für Sie, Ihre Familie und Ihr Zuhause nicht wert, wenn Sie nicht genau wissen, was Sie tun. 
+
+Wir übernehmen keine Verantwortung, Gewährleistung oder Haftung für die Verwendung dieser Hard- oder Software noch für die Installation oder irgendwelche Tipps, Ratschläge, Videos, etc., die von einem Mitglied dieser Seite oder einer verwandten Seite gegeben werden.
