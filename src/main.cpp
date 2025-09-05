@@ -25,6 +25,8 @@ const int WIEGAND_D0_PIN = 27;
 const int WIEGAND_D1_PIN = 26;
 const int BUZZER_PIN = 21;
 
+#define OPENING_DELAY_MS 1000
+
 // Bounce Buttons
 Bounce2::Button closedSwitch = Bounce2::Button();
 Bounce2::Button parcelSwitch = Bounce2::Button();
@@ -53,6 +55,15 @@ char lastUsed[50] = "unknown";
 unsigned long openStateEnterTime = 0;
 unsigned long motorStartTime = 0;
 
+// Melody playback variables
+int* currentMelody = nullptr;
+int* currentTempo = nullptr;
+int melodySize = 0;
+int currentNoteIndex = 0;
+unsigned long noteStartTime = 0;
+int noteDuration = 0;
+bool melodyPlaying = false;
+
 
 // Function declarations
 void setupMotor();
@@ -76,7 +87,8 @@ void loadConfiguration();
 void saveConfiguration();
 void publishState();
 void mqttCallback(char* topic, byte* payload, unsigned int length);
-void playMelody(String melodyName);
+void startMelodyPlayback(String melodyName);
+void loopMelody();
 
 
 void setup() {
@@ -126,6 +138,7 @@ void loop() {
   loopWiegand();
   loopWebServer();
   loopMqtt();
+  loopMelody();
 }
 
 void loadConfiguration() {
@@ -260,7 +273,7 @@ void setupWebServer() {
       String melodyType = request->getParam("melody", true)->value();
       Serial.print("Playing melody: ");
       Serial.println(melodyType);
-      playMelody(melodyType);
+      startMelodyPlayback(melodyType);
       request->send(200, "text/plain", "OK");
     } else {
       request->send(400, "text/plain", "Bad Request");
@@ -274,14 +287,16 @@ void setupWebServer() {
         if (currentState == LOCKED) {
           Serial.println("Web command: OPEN_PARCEL. State -> OPENING_TO_PARCEL");
           strncpy(lastUsed, "webinterface", sizeof(lastUsed) - 1);
-          playMelody(config.selectedMelody);
+          startMelodyPlayback(config.selectedMelody);
+          delay(OPENING_DELAY_MS);
           currentState = OPENING_TO_PARCEL;
         }
       } else if (type == "all") {
         if (currentState == LOCKED) {
           Serial.println("Web command: OPEN_ALL. State -> OPENING_TO_MAIL");
           strncpy(lastUsed, "webinterface", sizeof(lastUsed) - 1);
-          playMelody(config.selectedMelody);
+          startMelodyPlayback(config.selectedMelody);
+          delay(OPENING_DELAY_MS);
           currentState = OPENING_TO_MAIL;
         }
       }
@@ -466,7 +481,8 @@ void loopWiegand() {
           if (String(obj["code"]) == String(codeStr)) {
             Serial.println("Owner code matched. State -> OPENING_TO_MAIL");
             strncpy(lastUsed, obj["label"], sizeof(lastUsed) - 1);
-            playMelody(config.selectedMelody);
+            startMelodyPlayback(config.selectedMelody);
+            delay(OPENING_DELAY_MS);
             currentState = OPENING_TO_MAIL;
 
             return; 
@@ -481,7 +497,8 @@ void loopWiegand() {
           if (String(obj["code"]) == String(codeStr)) {
             Serial.println("Delivery code matched. State -> OPENING_TO_PARCEL");
             strncpy(lastUsed, obj["label"], sizeof(lastUsed) - 1);
-            playMelody(config.selectedMelody);
+            startMelodyPlayback(config.selectedMelody);
+            delay(OPENING_DELAY_MS);
             currentState = OPENING_TO_PARCEL;
             return;
           }
@@ -510,14 +527,16 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
       if (currentState == LOCKED) {
         Serial.println("MQTT command: OPEN_PARCEL. State -> OPENING_TO_PARCEL");
         strncpy(lastUsed, "mqtt", sizeof(lastUsed) - 1);
-        playMelody(config.selectedMelody);
+        startMelodyPlayback(config.selectedMelody);
+        delay(OPENING_DELAY_MS);
         currentState = OPENING_TO_PARCEL;
       }
     } else if (message == "OPEN_MAIL") {
       if (currentState == LOCKED) {
         Serial.println("MQTT command: OPEN_MAIL. State -> OPENING_TO_TO_MAIL");
         strncpy(lastUsed, "mqtt", sizeof(lastUsed) - 1);
-        playMelody(config.selectedMelody);
+        startMelodyPlayback(config.selectedMelody);
+        delay(OPENING_DELAY_MS);
         currentState = OPENING_TO_MAIL;
       }
     } else if (message == "CLOSE") {
@@ -585,96 +604,165 @@ void loopMqtt() {
   }
 }
 
-void playMelody(String melodyName) {
-  int* melody = nullptr;
-  int* tempo = nullptr;
-  int size = 0;
+void startMelodyPlayback(String melodyName) {
+  currentMelody = nullptr;
+  currentTempo = nullptr;
+  melodySize = 0;
+  currentNoteIndex = 0;
+  noteStartTime = 0;
+  noteDuration = 0;
+  melodyPlaying = false;
 
   if (melodyName == "DOCTOR_WHO") {
-    static int doctorWhoMelody[] = {
-      NOTE_D4, NOTE_G4, NOTE_A4, NOTE_B4, NOTE_A4, NOTE_G4, NOTE_E4, NOTE_D4, 
-      NOTE_C4, NOTE_B3, NOTE_A3, NOTE_G3
-    };
-    static int doctorWhoTempo[] = {
-      4, 8, 8, 4, 8, 8, 4, 8, 8, 
-      4, 8, 8
-    };
-    melody = doctorWhoMelody;
-    tempo = doctorWhoTempo;
-    size = sizeof(doctorWhoMelody) / sizeof(int);
+      static int doctorWhoMelody[] = {
+        NOTE_D4, NOTE_D4, NOTE_D4, NOTE_D4, NOTE_D4, NOTE_D4, NOTE_D4, NOTE_D4, NOTE_D4, NOTE_D4,
+        NOTE_D4, NOTE_D4, REST,  NOTE_A3, NOTE_D4, NOTE_G4, NOTE_D5, NOTE_C5, NOTE_A4,
+        NOTE_G4, NOTE_D5, NOTE_C5, NOTE_A4, NOTE_G4, NOTE_F4, NOTE_A4, NOTE_G4,
+        NOTE_D4, NOTE_D4, REST, NOTE_A3, NOTE_D4, NOTE_G4, NOTE_D5, NOTE_C5, NOTE_A4,
+        NOTE_G4, NOTE_D5, NOTE_C5, NOTE_A4, NOTE_G4, NOTE_F4, NOTE_A4, NOTE_C5
+      };
+      static int doctorWhoTempo[] = {
+        10, 10, 10, 5, 10, 10, 10, 5, 10, 10,
+        10, 5, 10, 10, 10, 10, 5, 10, 2,
+        5, 10, 10, 5, 10, 10, 10, 1,
+        10, 5, 10, 10, 10, 10, 5, 10, 2,
+        5, 10, 10, 5, 10, 10, 10, 1
+      };
+      currentMelody = doctorWhoMelody;
+      currentTempo = doctorWhoTempo;
+      melodySize = sizeof(doctorWhoMelody) / sizeof(int);
+  // Source: https://github.com/robsoncouto/arduino-songs/blob/master/imperialmarch/imperialmarch.ino
   } else if (melodyName == "IMPERIAL_MARCH") {
-    static int imperialMarchMelody[] = {
-      NOTE_G4, NOTE_G4, NOTE_G4, NOTE_DS4, NOTE_AS4, NOTE_G4, NOTE_DS4, NOTE_AS4, NOTE_G4
-    };
-    static int imperialMarchTempo[] = {
-      4, 4, 4, 8, 16, 4, 8, 16, 2
-    };
-    melody = imperialMarchMelody;
-    tempo = imperialMarchTempo;
-    size = sizeof(imperialMarchMelody) / sizeof(int);
+      static int imperialMarchMelody[] = {
+        NOTE_A4, NOTE_A4, NOTE_A4, NOTE_F4, NOTE_C5,
+        NOTE_A4, NOTE_F4, NOTE_C5, NOTE_A4,
+        NOTE_E5, NOTE_E5, NOTE_E5, NOTE_F5, NOTE_C5,
+        NOTE_G4, NOTE_F4, NOTE_C5, NOTE_A4
+      };
+      static int imperialMarchTempo[] = {
+        4, 4, 4, 8, 16,
+        4, 8, 16, 2,
+        4, 4, 4, 8, 16,
+        4, 8, 16, 2
+      };
+      currentMelody = imperialMarchMelody;
+      currentTempo = imperialMarchTempo;
+      melodySize = sizeof(imperialMarchMelody) / sizeof(int);
+  // Source: https://github.com/robsoncouto/arduino-songs/blob/master/supermario/supermario.ino
   } else if (melodyName == "MARIO") {
-    static int marioMelody[] = {
-      NOTE_E5, NOTE_E5, REST, NOTE_E5, REST, NOTE_C5, NOTE_E5, NOTE_G5, REST, NOTE_G4, REST
-    };
-    static int marioTempo[] = {
-      8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8
-    };
-    melody = marioMelody;
-    tempo = marioTempo;
-    size = sizeof(marioMelody) / sizeof(int);
+      static int marioMelody[] = {
+        NOTE_E5, NOTE_E5, REST, NOTE_E5, REST, NOTE_C5, NOTE_E5, REST,
+        NOTE_G5, REST, REST,  REST, NOTE_G4, REST, REST, REST,
+        NOTE_C5, REST, REST, NOTE_G4, REST, REST, NOTE_E4, REST,
+        REST, NOTE_A4, REST, NOTE_B4, REST, NOTE_AS4, NOTE_A4, REST,
+        NOTE_G4, NOTE_E5, NOTE_G5, NOTE_A5, REST, NOTE_F5, NOTE_G5,
+        REST, NOTE_E5, REST, NOTE_C5, NOTE_D5, NOTE_B4, REST, REST
+      };
+      static int marioTempo[] = {
+        8, 8, 8, 8, 8, 8, 8, 8,
+        4, 8, 8, 8, 4, 8, 8, 8,
+        4, 8, 8, 4, 8, 8, 4, 8,
+        8, 4, 8, 4, 8, 8, 4, 8,
+        8, 8, 8, 8, 8, 8, 8,
+        8, 4, 8, 8, 8, 4, 8, 8
+      };
+      currentMelody = marioMelody;
+      currentTempo = marioTempo;
+      melodySize = sizeof(marioMelody) / sizeof(int);
+  // Source: https://www.princetronics.com/the-simpsons-theme-song-on-arduino/
   } else if (melodyName == "SIMPSONS") {
-    static int simpsonsMelody[] = {
-      NOTE_C4, NOTE_D4, NOTE_E4, NOTE_F4, NOTE_G4, NOTE_A4, NOTE_B4, NOTE_C5, NOTE_B4, NOTE_A4, NOTE_G4, NOTE_F4, NOTE_E4, NOTE_D4, NOTE_C4
-    };
-    static int simpsonsTempo[] = {
-      8, 8, 8, 8, 8, 8, 8, 4, 8, 8, 8, 8, 8, 8, 4
-    };
-    melody = simpsonsMelody;
-    tempo = simpsonsTempo;
-    size = sizeof(simpsonsMelody) / sizeof(int);
+      static int simpsonsMelody[] = {
+        NOTE_C4, NOTE_E4, NOTE_FS4, NOTE_A4, NOTE_G4, NOTE_E4, NOTE_C4,
+        NOTE_A3, NOTE_A3, NOTE_A3, NOTE_FS3, REST,
+        NOTE_C4, NOTE_E4, NOTE_FS4, NOTE_A4, NOTE_G4, NOTE_E4, NOTE_C4,
+        NOTE_A3, NOTE_A3, NOTE_A3, NOTE_FS3,
+        NOTE_FS4, NOTE_FS4, NOTE_FS4, NOTE_FS4, NOTE_E4
+      };
+      static int simpsonsTempo[] = {
+        4, 4, 4, 2, 8, 8, 8,
+        8, 8, 8, 4, 4,
+        4, 4, 4, 2, 8, 8, 8,
+        8, 8, 8, 2,
+        8, 8, 8, 8, 2
+      };
+      currentMelody = simpsonsMelody;
+      currentTempo = simpsonsTempo;
+      melodySize = sizeof(simpsonsMelody) / sizeof(int);
+  // Source: https://www.hackster.io/jrance/super-mario-theme-song-w-piezo-buzzer-and-arduino-1cc63c
   } else if (melodyName == "PINK_PANTHER") {
-    static int pinkPantherMelody[] = {
-      NOTE_D4, NOTE_E4, NOTE_F4, NOTE_G4, NOTE_C5, NOTE_B4, NOTE_A4, NOTE_G4, NOTE_E4, NOTE_G4, NOTE_D4
-    };
-    static int pinkPantherTempo[] = {
-      4, 8, 8, 4, 4, 8, 8, 4, 4, 8, 2
-    };
-    melody = pinkPantherMelody;
-    tempo = pinkPantherTempo;
-    size = sizeof(pinkPantherMelody) / sizeof(int);
+      static int pinkPantherMelody[] = {
+        NOTE_CS4, NOTE_D4, REST, NOTE_E4, NOTE_F4, REST, NOTE_CS4, NOTE_D4,
+        NOTE_E4, NOTE_F4, NOTE_B3, NOTE_D4, NOTE_CS4, NOTE_A3, NOTE_G3, NOTE_D3, NOTE_E3, NOTE_F3
+      };
+      static int pinkPantherTempo[] = {
+        8, 8, 8, 8, 8, 8, 8, 8,
+        8, 8, 8, 8, 4, 4, 4, 8, 8, 2
+      };
+      currentMelody = pinkPantherMelody;
+      currentTempo = pinkPantherTempo;
+      melodySize = sizeof(pinkPantherMelody) / sizeof(int);
+  // Source: https://github.com/robsoncouto/arduino-songs/blob/master/tetris/tetris.ino
   } else if (melodyName == "TETRIS") {
-    static int tetrisMelody[] = {
-      NOTE_E5, NOTE_B4, NOTE_C5, NOTE_D5, NOTE_E5, NOTE_D5, NOTE_C5, NOTE_B4, NOTE_A4, NOTE_A4, NOTE_C5, NOTE_E5, NOTE_D5, NOTE_C5, NOTE_B4, NOTE_C5, NOTE_D5, NOTE_E5, NOTE_C5, NOTE_A4, NOTE_A4
-    };
-    static int tetrisTempo[] = {
-      8, 16, 16, 8, 8, 16, 16, 8, 8, 8, 8, 8, 16, 16, 8, 8, 16, 16, 8, 8, 4
-    };
-    melody = tetrisMelody;
-    tempo = tetrisTempo;
-    size = sizeof(tetrisMelody) / sizeof(int);
+      static int tetrisMelody[] = {
+        NOTE_E5, NOTE_B4, NOTE_C5, NOTE_D5, NOTE_E5, NOTE_D5, NOTE_C5, NOTE_B4,
+        NOTE_A4, NOTE_A4, NOTE_C5, NOTE_E5, NOTE_D5, NOTE_C5, NOTE_B4,
+        NOTE_C5, NOTE_D5, NOTE_E5, NOTE_C5, NOTE_A4, NOTE_A4, REST,
+        NOTE_D5, NOTE_F5, NOTE_A5, NOTE_G5, NOTE_F5, NOTE_E5,
+        NOTE_C5, NOTE_E5, NOTE_D5, NOTE_C5, NOTE_B4, NOTE_C5, NOTE_D5, NOTE_E5,
+        NOTE_C5, NOTE_A4, NOTE_A4
+      };
+      static int tetrisTempo[] = {
+        4, 8, 8, 4, 8, 8, 4, 4,
+        4, 8, 8, 4, 8, 8, 4,
+        8, 8, 4, 4, 4, 4, 4,
+        4, 8, 8, 4, 8, 8, 4,
+        8, 8, 4, 8, 8, 4, 8, 8,
+        4, 4, 4
+      };
+      currentMelody = tetrisMelody;
+      currentTempo = tetrisTempo;
+      melodySize = sizeof(tetrisMelody) / sizeof(int);
   } else {
-    // Default to Pink Panther if melodyName is not recognized
-    static int defaultMelody[] = {
-      NOTE_D4, NOTE_E4, NOTE_F4, NOTE_G4, NOTE_C5, NOTE_B4, NOTE_A4, NOTE_G4, NOTE_E4, NOTE_G4, NOTE_D4
-    };
-    static int defaultTempo[] = {
-      4, 8, 8, 4, 4, 8, 8, 4, 4, 8, 2
-    };
-    melody = defaultMelody;
-    tempo = defaultTempo;
-    size = sizeof(defaultMelody) / sizeof(int);
+      // Default to a longer Pink Panther melody if name is not recognized
+      static int defaultMelody[] = {
+        NOTE_CS4, NOTE_D4, REST, NOTE_E4, NOTE_F4, REST, NOTE_CS4, NOTE_D4,
+        NOTE_E4, NOTE_F4, NOTE_B3, NOTE_D4, NOTE_CS4, NOTE_A3, NOTE_G3, NOTE_D3, NOTE_E3, NOTE_F3
+      };
+      static int defaultTempo[] = {
+        8, 8, 8, 8, 8, 8, 8, 8,
+        8, 8, 8, 8, 4, 4, 4, 8, 8, 2
+      };
+      currentMelody = defaultMelody;
+      currentTempo = defaultTempo;
+      melodySize = sizeof(defaultMelody) / sizeof(int);
   }
 
-  if (melody == nullptr || tempo == nullptr || size == 0) {
+  if (currentMelody == nullptr || currentTempo == nullptr || melodySize == 0) {
     Serial.println("Error: Melody not found or empty.");
     return;
   }
+  melodyPlaying = true;
+  currentNoteIndex = 0;
+  noteStartTime = millis();
+  noteDuration = 1000 / currentTempo[currentNoteIndex];
+  tone(BUZZER_PIN, currentMelody[currentNoteIndex], noteDuration);
+}
 
-  for (int thisNote = 0; thisNote < size; thisNote++) {
-    int noteDuration = 1000 / tempo[thisNote];
-    tone(BUZZER_PIN, melody[thisNote], noteDuration);
-    int pauseBetweenNotes = noteDuration * 1.60;
-    delay(pauseBetweenNotes);
+void loopMelody() {
+  if (!melodyPlaying) {
+    return;
+  }
+
+  if (millis() - noteStartTime >= noteDuration * 1.20) { // Pause between notes
     noTone(BUZZER_PIN);
+    currentNoteIndex++;
+    if (currentNoteIndex < melodySize) {
+      noteStartTime = millis();
+      noteDuration = 1000 / currentTempo[currentNoteIndex];
+      tone(BUZZER_PIN, currentMelody[currentNoteIndex], noteDuration);
+    } else {
+      melodyPlaying = false;
+      noTone(BUZZER_PIN);
+    }
   }
 }

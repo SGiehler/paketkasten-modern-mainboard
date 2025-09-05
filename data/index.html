@@ -72,7 +72,8 @@
   input[type="text"],
   input[type="password"],
   input[type="number"],
-  input[type="range"] {
+  input[type="range"],
+  select {
     width: 100%;
     padding: 12px;
     margin-bottom: 15px;
@@ -192,7 +193,8 @@
     }
     input[type="text"],
     input[type="password"],
-    input[type="number"] {
+    input[type="number"],
+    select {
       background-color: #212529;
       color: var(--dark-color);
       border-color: var(--dark-border);
@@ -282,7 +284,7 @@
 
     <h2>Melody</h2>
     <label for="melodySelect">Select Melody:</label>
-    <select id="melodySelect" name="melodySelect" class="btn" style="display: block; width: 100%; margin-bottom: 15px;">
+    <select id="melodySelect" name="melodySelect">
       <option value="DOCTOR_WHO">Doctor Who</option>
       <option value="IMPERIAL_MARCH">Imperial March</option>
       <option value="MARIO">Mario</option>
