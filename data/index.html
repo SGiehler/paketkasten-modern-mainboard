@@ -280,6 +280,18 @@
     <div class="label">Close: <output for="dutyCycleClose" id="dutyCycleCloseValue"></output></div>
     <input type="range" id="dutyCycleClose" name="dutyCycleClose" min="50" max="100">
 
+    <h2>Melody</h2>
+    <label for="melodySelect">Select Melody:</label>
+    <select id="melodySelect" name="melodySelect" class="btn" style="display: block; width: 100%; margin-bottom: 15px;">
+      <option value="DOCTOR_WHO">Doctor Who</option>
+      <option value="IMPERIAL_MARCH">Imperial March</option>
+      <option value="MARIO">Mario</option>
+      <option value="SIMPSONS">Simpsons</option>
+      <option value="PINK_PANTHER">Pink Panther</option>
+      <option value="TETRIS">Tetris</option>
+    </select>
+    <button type="button" class="btn btn-primary" onclick="playSelectedMelody()">Play Melody</button>
+
     <input type="submit" class="btn btn-primary" value="Save Configuration">
   </form>
 </div>
@@ -394,6 +406,84 @@
       }
     });
     document.getElementById('deliveryCodesJson').value = JSON.stringify(deliveryCodes);
+  });
+
+  document.getElementById('dutyCycleOpen').addEventListener('input', function(e) {
+    document.getElementById('dutyCycleOpenValue').value = e.target.value;
+  });
+
+  document.getElementById('dutyCycleClose').addEventListener('input', function(e) {
+    document.getElementById('dutyCycleCloseValue').value = e.target.value;
+  });
+
+  function playSelectedMelody() {
+    const selectedMelody = document.getElementById('melodySelect').value;
+    fetch('/playMelody', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: 'melody=' + selectedMelody
+    })
+    .then(response => {
+      if (!response.ok) {
+        console.error('Error playing melody');
+      }
+    })
+    .catch(error => console.error('Error playing melody:', error));
+  }
+
+  function loadConfig() {
+    fetch('/config')
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('ssid').value = data.ssid || '';
+        document.getElementById('mqttServer').value = data.mqttServer || '';
+        document.getElementById('mqttPort').value = data.mqttPort || 1883;
+        document.getElementById('mqttUser').value = data.mqttUser || '';
+        document.getElementById('dutyCycleOpen').value = data.dutyCycleOpen || 120;
+        document.getElementById('dutyCycleOpenValue').value = data.dutyCycleOpen || 120;
+        document.getElementById('dutyCycleClose').value = data.dutyCycleClose || 90;
+        document.getElementById('dutyCycleCloseValue').value = data.dutyCycleClose || 90;
+        document.getElementById('melodySelect').value = data.selectedMelody || 'PINK_PANTHER'; // Default to Pink Panther
+
+        const ownerCodes = JSON.parse(data.ownerCodes || '[]');
+        ownerCodes.forEach(code => createCodeEntry('owner', code.label, code.code));
+
+        const deliveryCodes = JSON.parse(data.deliveryCodes || '[]');
+        deliveryCodes.forEach(code => createCodeEntry('delivery', code.label, code.code));
+      })
+      .catch(error => console.error('Error fetching config:', error));
+  }
+
+  document.querySelector('form').addEventListener('submit', function(e) {
+    const ownerCodes = [];
+    document.querySelectorAll('#ownerCodes .code-entry').forEach(entry => {
+      const label = entry.querySelector('.label-input').value;
+      const code = entry.querySelector('.code-input').value;
+      if (code) { // Only add if code is not empty
+        ownerCodes.push({ label: label, code: code });
+      }
+    });
+    document.getElementById('ownerCodesJson').value = JSON.stringify(ownerCodes);
+
+    const deliveryCodes = [];
+    document.querySelectorAll('#deliveryCodes .code-entry').forEach(entry => {
+      const label = entry.querySelector('.label-input').value;
+      const code = entry.querySelector('.code-input').value;
+      if (code) { // Only add if code is not empty
+        deliveryCodes.push({ label: label, code: code });
+      }
+    });
+    document.getElementById('deliveryCodesJson').value = JSON.stringify(deliveryCodes);
+
+    // Add selected melody to form data
+    const selectedMelody = document.getElementById('melodySelect').value;
+    const melodyInput = document.createElement('input');
+    melodyInput.type = 'hidden';
+    melodyInput.name = 'selectedMelody';
+    melodyInput.value = selectedMelody;
+    e.target.appendChild(melodyInput);
   });
 
   document.getElementById('dutyCycleOpen').addEventListener('input', function(e) {
