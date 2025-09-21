@@ -285,11 +285,11 @@
     <h2>Melody</h2>
     <label for="melodySelect">Select Melody:</label>
     <select id="melodySelect" name="selectedMelody">
-      <option value="DOCTOR_WHO">Doctor Who</option>
+      <option value="NOKIA_TUNE">Nokia Tune</option>
       <option value="IMPERIAL_MARCH">Imperial March</option>
       <option value="MARIO">Mario</option>
-      <option value="SIMPSONS">Simpsons</option>
-      <option value="PINK_PANTHER">Pink Panther</option>
+      <option value="WINDOWS_XP_STARTUP">Windows XP Startup</option>
+      <option value="INTEL_INSIDE">Intel Inside</option>
       <option value="TETRIS">Tetris</option>
     </select>
     <button type="button" class="btn btn-primary" onclick="playSelectedMelody()">Play Melody</button>
@@ -477,7 +477,7 @@
         document.getElementById('dutyCycleOpenValue').value = data.dutyCycleOpen || 120;
         document.getElementById('dutyCycleClose').value = data.dutyCycleClose || 90;
         document.getElementById('dutyCycleCloseValue').value = data.dutyCycleClose || 90;
-        document.getElementById('melodySelect').value = data.selectedMelody || 'PINK_PANTHER'; // Default to Pink Panther
+        document.getElementById('melodySelect').value = data.selectedMelody || 'NOKIA_TUNE'; // Default to Nokia Tune
 
         const ownerCodes = JSON.parse(data.ownerCodes || '[]');
         ownerCodes.forEach(code => createCodeEntry('owner', code.label, code.code));

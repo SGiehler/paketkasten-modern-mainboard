@@ -25,7 +25,7 @@ const int WIEGAND_D0_PIN = 27;
 const int WIEGAND_D1_PIN = 26;
 const int BUZZER_PIN = 21;
 
-#define OPENING_DELAY_MS 1000
+#define OPENING_DELAY_MS 700
 
 // Bounce Buttons
 Bounce2::Button closedSwitch = Bounce2::Button();
@@ -64,6 +64,7 @@ int currentNoteIndex = 0;
 unsigned long noteStartTime = 0;
 int noteDuration = 0;
 bool melodyPlaying = false;
+int wholenote = 1000;
 
 
 // Function declarations
@@ -158,7 +159,7 @@ void loadConfiguration() {
   config.mqttPassword = preferences.getString(MQTT_PASSWORD_KEY, "");
   config.dutyCycleOpen = preferences.getInt(DUTY_CYCLE_OPEN_KEY, 120);
   config.dutyCycleClose = preferences.getInt(DUTY_CYCLE_CLOSE_KEY, 90);
-  config.selectedMelody = preferences.getString(SELECTED_MELODY_KEY, "PINK_PANTHER");
+  config.selectedMelody = preferences.getString(SELECTED_MELODY_KEY, "NOKIA_TUNE");
   preferences.end();
 }
 
@@ -619,26 +620,20 @@ void startMelodyPlayback(String melodyName) {
   noteDuration = 0;
   melodyPlaying = false;
 
-  if (melodyName == "DOCTOR_WHO") {
-      static int doctorWhoMelody[] = {
-        NOTE_D4, NOTE_D4, NOTE_D4, NOTE_D4, NOTE_D4, NOTE_D4, NOTE_D4, NOTE_D4, NOTE_D4, NOTE_D4,
-        NOTE_D4, NOTE_D4, REST,  NOTE_A3, NOTE_D4, NOTE_G4, NOTE_D5, NOTE_C5, NOTE_A4,
-        NOTE_G4, NOTE_D5, NOTE_C5, NOTE_A4, NOTE_G4, NOTE_F4, NOTE_A4, NOTE_G4,
-        NOTE_D4, NOTE_D4, REST, NOTE_A3, NOTE_D4, NOTE_G4, NOTE_D5, NOTE_C5, NOTE_A4,
-        NOTE_G4, NOTE_D5, NOTE_C5, NOTE_A4, NOTE_G4, NOTE_F4, NOTE_A4, NOTE_C5
+  if (melodyName == "NOKIA_TUNE") {
+      wholenote = 1333;
+      static int nokiaTuneMelody[] = {
+        NOTE_E5, NOTE_D5, NOTE_FS4, NOTE_GS4, NOTE_CS5, NOTE_B4, NOTE_D4, NOTE_E4, NOTE_B4, NOTE_A4, NOTE_CS4, NOTE_E4, NOTE_A4
       };
-      static int doctorWhoTempo[] = {
-        10, 10, 10, 5, 10, 10, 10, 5, 10, 10,
-        10, 5, 10, 10, 10, 10, 5, 10, 2,
-        5, 10, 10, 5, 10, 10, 10, 1,
-        10, 5, 10, 10, 10, 10, 5, 10, 2,
-        5, 10, 10, 5, 10, 10, 10, 1
+      static int nokiaTuneTempo[] = {
+        8, 8, 4, 4, 8, 8, 4, 4, 8, 8, 4, 4, 2
       };
-      currentMelody = doctorWhoMelody;
-      currentTempo = doctorWhoTempo;
-      melodySize = sizeof(doctorWhoMelody) / sizeof(int);
+      currentMelody = nokiaTuneMelody;
+      currentTempo = nokiaTuneTempo;
+      melodySize = sizeof(nokiaTuneMelody) / sizeof(int);
   // Source: https://github.com/robsoncouto/arduino-songs/blob/master/imperialmarch/imperialmarch.ino
   } else if (melodyName == "IMPERIAL_MARCH") {
+      wholenote = 1800;
       static int imperialMarchMelody[] = {
         NOTE_A4, NOTE_A4, NOTE_A4, NOTE_F4, NOTE_C5,
         NOTE_A4, NOTE_F4, NOTE_C5, NOTE_A4,
@@ -646,16 +641,17 @@ void startMelodyPlayback(String melodyName) {
         NOTE_G4, NOTE_F4, NOTE_C5, NOTE_A4
       };
       static int imperialMarchTempo[] = {
-        4, 4, 4, 8, 16,
-        4, 8, 16, 2,
-        4, 4, 4, 8, 16,
-        4, 8, 16, 2
+        4, 4, 4, 5, 16,
+        4, 5, 16, 2,
+        4, 4, 4, 5, 16,
+        4, 5, 16, 2
       };
       currentMelody = imperialMarchMelody;
       currentTempo = imperialMarchTempo;
       melodySize = sizeof(imperialMarchMelody) / sizeof(int);
   // Source: https://github.com/robsoncouto/arduino-songs/blob/master/supermario/supermario.ino
   } else if (melodyName == "MARIO") {
+      wholenote = 1000;
       static int marioMelody[] = {
         NOTE_E5, NOTE_E5, REST, NOTE_E5, REST, NOTE_C5, NOTE_E5, REST,
         NOTE_G5, REST, REST,  REST, NOTE_G4, REST, REST, REST,
@@ -676,39 +672,32 @@ void startMelodyPlayback(String melodyName) {
       currentTempo = marioTempo;
       melodySize = sizeof(marioMelody) / sizeof(int);
   // Source: https://www.princetronics.com/the-simpsons-theme-song-on-arduino/
-  } else if (melodyName == "SIMPSONS") {
-      static int simpsonsMelody[] = {
-        NOTE_C4, NOTE_E4, NOTE_FS4, NOTE_A4, NOTE_G4, NOTE_E4, NOTE_C4,
-        NOTE_A3, NOTE_A3, NOTE_A3, NOTE_FS3, REST,
-        NOTE_C4, NOTE_E4, NOTE_FS4, NOTE_A4, NOTE_G4, NOTE_E4, NOTE_C4,
-        NOTE_A3, NOTE_A3, NOTE_A3, NOTE_FS3,
-        NOTE_FS4, NOTE_FS4, NOTE_FS4, NOTE_FS4, NOTE_E4
+  } else if (melodyName == "WINDOWS_XP_STARTUP") {
+      wholenote = 1000;
+      static int windowsXpStartupMelody[] = {
+        NOTE_DS5, NOTE_GS4, NOTE_AS4, NOTE_DS5, NOTE_GS4, NOTE_AS4, NOTE_DS5
       };
-      static int simpsonsTempo[] = {
-        4, 4, 4, 2, 8, 8, 8,
-        8, 8, 8, 4, 4,
-        4, 4, 4, 2, 8, 8, 8,
-        8, 8, 8, 2,
-        8, 8, 8, 8, 2
+      static int windowsXpStartupTempo[] = {
+        4, 8, 8, 2, 8, 8, 4
       };
-      currentMelody = simpsonsMelody;
-      currentTempo = simpsonsTempo;
-      melodySize = sizeof(simpsonsMelody) / sizeof(int);
+      currentMelody = windowsXpStartupMelody;
+      currentTempo = windowsXpStartupTempo;
+      melodySize = sizeof(windowsXpStartupMelody) / sizeof(int);
   // Source: https://www.hackster.io/jrance/super-mario-theme-song-w-piezo-buzzer-and-arduino-1cc63c
-  } else if (melodyName == "PINK_PANTHER") {
-      static int pinkPantherMelody[] = {
-        NOTE_CS4, NOTE_D4, REST, NOTE_E4, NOTE_F4, REST, NOTE_CS4, NOTE_D4,
-        NOTE_E4, NOTE_F4, NOTE_B3, NOTE_D4, NOTE_CS4, NOTE_A3, NOTE_G3, NOTE_D3, NOTE_E3, NOTE_F3
+  } else if (melodyName == "INTEL_INSIDE") {
+      wholenote = 400;
+      static int intelInsideMelody[] = {
+        NOTE_DS4, NOTE_DS4, NOTE_GS4, NOTE_DS4, NOTE_AS4
       };
-      static int pinkPantherTempo[] = {
-        8, 8, 8, 8, 8, 8, 8, 8,
-        8, 8, 8, 8, 4, 4, 4, 8, 8, 2
+      static int intelInsideTempo[] = {
+        2, 2, 2, 2, 1
       };
-      currentMelody = pinkPantherMelody;
-      currentTempo = pinkPantherTempo;
-      melodySize = sizeof(pinkPantherMelody) / sizeof(int);
+      currentMelody = intelInsideMelody;
+      currentTempo = intelInsideTempo;
+      melodySize = sizeof(intelInsideMelody) / sizeof(int);
   // Source: https://github.com/robsoncouto/arduino-songs/blob/master/tetris/tetris.ino
   } else if (melodyName == "TETRIS") {
+      wholenote = 1000;
       static int tetrisMelody[] = {
         NOTE_E5, NOTE_B4, NOTE_C5, NOTE_D5, NOTE_E5, NOTE_D5, NOTE_C5, NOTE_B4,
         NOTE_A4, NOTE_A4, NOTE_C5, NOTE_E5, NOTE_D5, NOTE_C5, NOTE_B4,
@@ -729,7 +718,7 @@ void startMelodyPlayback(String melodyName) {
       currentTempo = tetrisTempo;
       melodySize = sizeof(tetrisMelody) / sizeof(int);
   } else {
-      // Default to a longer Pink Panther melody if name is not recognized
+      wholenote = 2000;
       static int defaultMelody[] = {
         NOTE_CS4, NOTE_D4, REST, NOTE_E4, NOTE_F4, REST, NOTE_CS4, NOTE_D4,
         NOTE_E4, NOTE_F4, NOTE_B3, NOTE_D4, NOTE_CS4, NOTE_A3, NOTE_G3, NOTE_D3, NOTE_E3, NOTE_F3
@@ -750,7 +739,7 @@ void startMelodyPlayback(String melodyName) {
   melodyPlaying = true;
   currentNoteIndex = 0;
   noteStartTime = millis();
-  noteDuration = 1000 / currentTempo[currentNoteIndex];
+  noteDuration = wholenote / currentTempo[currentNoteIndex];
   tone(BUZZER_PIN, currentMelody[currentNoteIndex], noteDuration);
 }
 
@@ -764,7 +753,7 @@ void loopMelody() {
     currentNoteIndex++;
     if (currentNoteIndex < melodySize) {
       noteStartTime = millis();
-      noteDuration = 1000 / currentTempo[currentNoteIndex];
+      noteDuration = wholenote / currentTempo[currentNoteIndex];
       tone(BUZZER_PIN, currentMelody[currentNoteIndex], noteDuration);
     } else {
       melodyPlaying = false;
