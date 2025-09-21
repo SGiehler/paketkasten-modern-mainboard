@@ -91,6 +91,7 @@ void publishState();
 void mqttCallback(char* topic, byte* payload, unsigned int length);
 void startMelodyPlayback(String melodyName);
 void loopMelody();
+void factoryReset();
 
 
 void setup() {
@@ -179,6 +180,13 @@ void saveConfiguration() {
   preferences.end();
 }
 
+void factoryReset() {
+  preferences.begin(PREFERENCES_NAMESPACE, false);
+  preferences.clear();
+  preferences.end();
+  Serial.println("All preferences cleared.");
+}
+
 void setupMotor() {
   pinMode(MOTOR_PIN_1, OUTPUT);
   pinMode(MOTOR_PIN_2, OUTPUT);
@@ -258,6 +266,15 @@ void setupWebServer() {
     saveConfiguration();
     delay(500);
     Serial.println("Configuration saved. Restarting...");
+    request->send(200, "text/plain", "OK");
+    delay(2000);
+    shouldRestart = true;
+  });
+
+  server.on("/factoryreset", HTTP_POST, [](AsyncWebServerRequest *request){
+    Serial.println("Factory reset requested.");
+    factoryReset();
+    loadConfiguration();
     request->send(200, "text/plain", "OK");
     delay(2000);
     shouldRestart = true;
@@ -546,11 +563,6 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
         delay(OPENING_DELAY_MS);
         currentState = OPENING_TO_MAIL;
       }
-    } else if (message == "CLOSE") {
-      if (currentState == PARCEL_OPEN || currentState == MAIL_OPEN) {
-        Serial.println("MQTT command: CLOSE. State -> LOCKING");
-        currentState = LOCKING;
-      }
     }
   }
 }
@@ -592,6 +604,7 @@ String getMailboxStateString() {
 
 void loopMqtt() {
   if (config.mqttServer != "") {
+    mqttClient.loop();
     if (!mqttClient.connected()) {
       long now = millis();
       static long lastReconnectAttempt = 0;

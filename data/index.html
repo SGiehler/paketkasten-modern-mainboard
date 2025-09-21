@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
 <title>Paketkasten Setup</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
@@ -53,6 +54,11 @@
     border-bottom: 1px solid var(--light-border);
     padding-bottom: 10px;
     margin-top: 20px;
+  }
+
+  .divider {
+    border-top: 1px solid var(--light-border);
+    margin: 20px 0;
   }
 
   .box {
@@ -108,6 +114,17 @@
   .btn-primary:hover {
     background-color: var(--primary-color-hover);
     border-color: var(--primary-color-hover);
+  }
+
+  .btn-danger {
+    color: #fff;
+    background-color: var(--danger-color);
+    border-color: var(--danger-color);
+  }
+
+  .btn-danger:hover {
+    background-color: var(--danger-color-hover);
+    border-color: var(--danger-color-hover);
   }
   
   .code-entry {
@@ -190,6 +207,9 @@
     }
     h2 {
       border-bottom-color: var(--dark-border);
+    }
+    .divider {
+      border-top-color: var(--dark-border);
     }
     input[type="text"],
     input[type="password"],
@@ -294,7 +314,10 @@
     </select>
     <button type="button" class="btn btn-primary" onclick="playSelectedMelody()">Play Melody</button>
 
+    <div class="divider"></div>
+
     <input type="submit" class="btn btn-primary" value="Save Configuration">
+    <button type="button" class="btn btn-danger" onclick="factoryReset()">Factory Reset</button>
   </form>
 </div>
 
@@ -366,28 +389,6 @@
     button.parentElement.remove();
   }
 
-  function loadConfig() {
-    fetch('/config')
-      .then(response => response.json())
-      .then(data => {
-        document.getElementById('ssid').value = data.ssid || '';
-        document.getElementById('mqttServer').value = data.mqttServer || '';
-        document.getElementById('mqttPort').value = data.mqttPort || 1883;
-        document.getElementById('mqttUser').value = data.mqttUser || '';
-        document.getElementById('dutyCycleOpen').value = data.dutyCycleOpen || 120;
-        document.getElementById('dutyCycleOpenValue').value = data.dutyCycleOpen || 120;
-        document.getElementById('dutyCycleClose').value = data.dutyCycleClose || 90;
-        document.getElementById('dutyCycleCloseValue').value = data.dutyCycleClose || 90;
-
-        const ownerCodes = JSON.parse(data.ownerCodes || '[]');
-        ownerCodes.forEach(code => createCodeEntry('owner', code.label, code.code));
-
-        const deliveryCodes = JSON.parse(data.deliveryCodes || '[]');
-        deliveryCodes.forEach(code => createCodeEntry('delivery', code.label, code.code));
-      })
-      .catch(error => console.error('Error fetching config:', error));
-  }
-
   document.querySelector('form').addEventListener('submit', function(e) {
     e.preventDefault();
 
@@ -425,6 +426,7 @@
             <h2>Configuration Saved</h2>
             <p>The new configuration has been saved successfully.</p>
             <p>The device is now restarting. You will be redirected to the main page in a few seconds.</p>
+            <p>If you changed the WiFi settings, this redirect might not work.</p>
           </div>
         `;
         setTimeout(() => {
@@ -438,14 +440,6 @@
       console.error('Error saving configuration:', error);
       alert('Error saving configuration.');
     });
-  });
-
-  document.getElementById('dutyCycleOpen').addEventListener('input', function(e) {
-    document.getElementById('dutyCycleOpenValue').value = e.target.value;
-  });
-
-  document.getElementById('dutyCycleClose').addEventListener('input', function(e) {
-    document.getElementById('dutyCycleCloseValue').value = e.target.value;
   });
 
   function playSelectedMelody() {
@@ -497,6 +491,35 @@
   });
 
   loadConfig();
+
+  function factoryReset() {
+    if (confirm("Das Gerät auf Werkseinstellung zurücksetzen?")) {
+      fetch('/factoryreset', {
+        method: 'POST'
+      })
+      .then(response => {
+        if (response.ok) {
+          document.querySelector('.container').innerHTML = `
+            <div class="box">
+              <h2>Factory Reset Successful</h2>
+              <p>The device has been reset to factory settings.</p>
+              <p>The device is now restarting. You will be redirected to the main page in a few seconds.</p>
+              <p>If this reset changed the WiFi settings, this redirect might not work.</p>
+            </div>
+          `;
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 5000);
+        } else {
+          alert('Error performing factory reset.');
+        }
+      })
+      .catch(error => {
+        console.error('Error performing factory reset:', error);
+        alert('Error performing factory reset.');
+      });
+    }
+  }
 </script>
 </body>
 </html>
