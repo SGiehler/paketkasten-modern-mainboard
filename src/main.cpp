@@ -35,7 +35,7 @@ int debounceDelay = 1; // in ms
 
 // Inverting flags
 const bool INVERT_SWITCH_STATE = false;
-const char* SOFTAP_PASSWORD = "tuVlZfEr5^p!fcUH0QWU";
+const char* SOFTAP_PASSWORD = "mLbbY7EyS";
 
 // Movement Settings
 const int PWM_FREQ = 50000;
@@ -54,6 +54,7 @@ char lastScannedWiegandId[20] = "";
 char lastUsed[50] = "unknown";
 unsigned long openStateEnterTime = 0;
 unsigned long motorStartTime = 0;
+bool shouldRestart = false;
 
 // Melody playback variables
 int* currentMelody = nullptr;
@@ -139,6 +140,10 @@ void loop() {
   loopWebServer();
   loopMqtt();
   loopMelody();
+  if (shouldRestart) {
+    delay(100);
+    ESP.restart();
+  }
 }
 
 void loadConfiguration() {
@@ -250,10 +255,11 @@ void setupWebServer() {
     config.dutyCycleClose = request->arg("dutyCycleClose").toInt();
     config.selectedMelody = request->arg("selectedMelody");
     saveConfiguration();
+    delay(500);
     Serial.println("Configuration saved. Restarting...");
-    request->send(LittleFS, "/saved.html", "text/html");
-    delay(1000);
-    ESP.restart();
+    request->send(200, "text/plain", "OK");
+    delay(2000);
+    shouldRestart = true;
   });
 
   server.on("/diagnostics", HTTP_GET, [](AsyncWebServerRequest *request){
