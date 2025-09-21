@@ -7,6 +7,7 @@ Dieses Projekt ist ein Paketkasten-System, das die sichere und effiziente Zustel
 - [Mainboard tauschen](#mainboard-tauschen)
 - [Pin-Beschreibung](#pin-beschreibung)
 - [LED-Statusanzeigen](#led-statusanzeigen)
+- [Duty Cycle](#duty-cycle)
 - [MQTT-Integration](#mqtt-integration)
   - [MQTT-Status (Topic: `paketkasten/state`)](#mqtt-status-topic-paketkastenstate)
   - [MQTT-Befehle (Topic: `paketkasten/command`)](#mqtt-befehle-topic-paketkastencommand)
@@ -45,6 +46,14 @@ Die Status-LEDs (Grün und Rot) zeigen den aktuellen Zustand des Systems an:
 | **Paketfach oder Briefkasten geöffnet (PARCEL_OPEN / MAIL_OPEN)** | 🟢        | ⚫      |
 | **Öffnet oder Verriegelt (OPENING_TO_PARCEL / OPENING_TO_MAIL / LOCKING)** | ⚫       | 🔴       |
 | **Motorfehler (MOTOR_ERROR)**                     | 🟢        | 🔴       |
+
+# Duty Cycle
+
+Der Duty Cycle beschreibt das Verhältnis der Einschaltdauer eines Motors zur gesamten Betriebszeit und beeinflusst direkt die Geschwindigkeit des Motors. Ist der Duty Cycle zu hoch, kann der Paketkasten blockieren. Ist er zu niedrig, reicht das initiale Drehmoment möglicherweise nicht aus, um den Kasten zu bewegen. Es ist wichtig, den Duty Cycle korrekt einzustellen, um einen reibungslosen Betrieb zu gewährleisten. 
+
+Geht der Kasten nicht auf oder zu, sollte dieser Wert in 5er schritten erhöht werden. Sollte der Kasten blockieren muss man leider die Elektronik wieder ausbauen und den Motor einmal herausnehmen, da er selbstständig aus der Blockade nicht wieder heraus kommt. In diesem Fall sollte der Duty Cycle reduziert werden.
+
+![Duty Cycle Diagramm](duty-cycle.png)
 
 # MQTT-Integration
 
