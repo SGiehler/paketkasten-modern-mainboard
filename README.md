@@ -60,6 +60,12 @@ Prototyp in Aktion
 
 [![Watch the video](https://img.youtube.com/vi/s8VNXXUlV3o/hqdefault.jpg)](https://www.youtube.com/watch?v=s8VNXXUlV3o)
 
+## Bezug
+
+Ich habe während der Entwicklung ein paar mehr Platinen und Komponenten bestellt. Bei interesse meldet euch gerne:
+
+paketkasten[at]codestash.de
+
 ## Mitwirken
 
 Wir freuen uns über Beiträge zur Weiterentwicklung dieses Projekts. Ob Fehlerbehebungen, neue Funktionen oder Verbesserungen der Dokumentation – jede Hilfe ist willkommen.
