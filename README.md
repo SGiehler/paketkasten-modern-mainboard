@@ -18,6 +18,10 @@ Dieses Projekt wurde ins Leben gerufen, um dem DHL Paketkasten, der von DHL zum 
 
 Für die erweiterten Funktionen ist eine konstante Stromversorgung notwendig. Die Hauptplatine benötigt eine Gleichspannungsversorgung von 14-30V und ist nicht für den Batteriebetrieb ausgelegt.
 
+## Anleitung
+
+Eine detaillierte Anleitung zur Einrichtung und Nutzung des Paketkastens finden Sie hier: [Bedienungsanleitung](doc/manual/manual.md)
+
 ## Software
 
 Die Weboberfläche bietet eine einfache Möglichkeit, den Paketkasten zu konfigurieren und zu steuern.
