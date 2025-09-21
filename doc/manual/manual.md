@@ -19,7 +19,7 @@ Dieses Projekt ist ein Paketkasten-System, das die sichere und effiziente Zustel
 
 In diesem Video wird gezeigt, wie das alte Mainboard gegen das neue getauscht wird.
 
-[![Mainboard tauschen](https://img.youtube.com/vi/pbdO1q2X-Sg/0.jpg)](https://www.youtube.com/watch?v=pbdO1q2X-Sg)
+[![Mainboard tauschen](https://img.youtube.com/vi/oPFp7a3QJAg/0.jpg)](https://www.youtube.com/watch?v=oPFp7a3QJAg)
 
 # Pin-Beschreibung
 

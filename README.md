@@ -2,6 +2,25 @@
 
 Ein Open-Source-Projekt zur Modernisierung und Wiederbelebung des DHL Paketkastens.
 
+## Inhaltsverzeichnis
+
+- [Einleitung](#einleitung)
+- [Features](#features)
+  - [Webinterface](#webinterface)
+  - [MQTT-Integration](#mqtt-integration)
+  - [WLAN-Konnektivität](#wlan-konnektivität)
+  - [Universelle Kompatibilität](#universelle-kompatibilität)
+  - [Kompatible Hardware](#kompatible-hardware)
+- [Wichtige Hinweise](#wichtige-hinweise)
+- [Anleitung](#anleitung)
+- [Software](#software)
+- [Hardware](#hardware)
+- [Videos](#videos)
+- [Bezug](#bezug)
+- [Mitwirken](#mitwirken)
+- [Lizenz](#lizenz)
+- [Haftungsausschluss](#haftungsausschluss)
+
 ## Einleitung
 
 Dieses Projekt wurde ins Leben gerufen, um dem DHL Paketkasten, der von DHL zum End-of-Life erklärt wurde, neues Leben einzuhauchen. Da Zusteller den Paketkasten nicht mehr öffnen können, bietet dieses Projekt eine Lösung, um ihn weiterhin nutzen zu können. Mit einer neuen Hauptplatine und dieser Software wird der Paketkasten für alle Zustelldienste wie Hermes, DPD, Amazon und weitere geöffnet. Dies wird durch die Kompatibilität mit Wiegand-fähigen Tastaturen und RFID-Lesern ermöglicht.
@@ -62,7 +81,7 @@ Prototyp in Aktion
 
 ## Bezug
 
-Ich habe während der Entwicklung ein paar mehr Platinen und Komponenten bestellt. Bei interesse meldet euch gerne:
+Ich habe während der Entwicklung ein paar mehr Platinen und Komponenten bestellt. Bei Interesse meldet euch gerne:
 
 paketkasten[at]codestash.de
 
