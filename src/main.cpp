@@ -39,7 +39,7 @@ const char* SOFTAP_PASSWORD = "mLbbY7EyS";
 
 // Movement Settings
 const int PWM_FREQ = 50000;
-const int FULL_POWER_MS = 20;
+const int FULL_POWER_MS = 100;
 const int FULL_POWER_DUTY_CYCLE = 160;
 const int RAMP_DOWN_MS = 10;
 
@@ -92,7 +92,9 @@ void mqttCallback(char* topic, byte* payload, unsigned int length);
 void startMelodyPlayback(String melodyName);
 void loopMelody();
 void factoryReset();
-
+void requestParcelOpening(const char* requester);
+void requestMailOpening(const char* requester);
+void opensequenceDone();
 
 void setup() {
   setCpuFrequencyMhz(160);
@@ -124,13 +126,6 @@ void setup() {
 
 void loop() {
 
-  static MailboxState lastLoggedState = (MailboxState)-1;
-  if (currentState != lastLoggedState) {
-    Serial.print("Current state: ");
-    Serial.println(getMailboxStateString());
-    lastLoggedState = currentState;
-  }
-
   if ((currentState == PARCEL_OPEN || currentState == MAIL_OPEN) && (millis() - openStateEnterTime > 1000)) {
     currentState = LOCKING;
   }
@@ -138,14 +133,18 @@ void loop() {
   loopMotor();
   loopLeds();
   loopSwitches();
-  loopWiegand();
-  loopWebServer();
-  loopMqtt();
   loopMelody();
-  if (shouldRestart) {
-    delay(100);
-    ESP.restart();
+  
+  if (currentState == LOCKED || currentState == PARCEL_OPEN || currentState == MAIL_OPEN || currentState == MOTOR_ERROR) {
+    loopWiegand();
+    loopWebServer();
+    loopMqtt();
+    if (shouldRestart) {
+      delay(100);
+      ESP.restart();
+    }
   }
+
 }
 
 void loadConfiguration() {
@@ -185,6 +184,29 @@ void factoryReset() {
   preferences.clear();
   preferences.end();
   Serial.println("All preferences cleared.");
+}
+
+void requestParcelOpening(const char* requester) {
+  if (currentState == LOCKED) {
+    Serial.println("Request: OPEN_PARCEL. State -> OPENING_TO_PARCEL");
+    strncpy(lastUsed, requester, sizeof(lastUsed) - 1);
+    startMelodyPlayback(config.selectedMelody);
+    delay(OPENING_DELAY_MS);
+    currentState = OPENING_TO_PARCEL;
+  }
+}
+
+void requestMailOpening(const char* requester) {
+  if (currentState == LOCKED) {  
+    Serial.println("Request: OPEN_MAIL. State -> OPENING_TO_MAIL");
+    strncpy(lastUsed, requester, sizeof(lastUsed) - 1);
+    startMelodyPlayback(config.selectedMelody);
+    delay(OPENING_DELAY_MS);
+    currentState = OPENING_TO_MAIL;
+  }
+}
+
+void openSequenceDone() {
 }
 
 void setupMotor() {
@@ -308,21 +330,9 @@ void setupWebServer() {
     if (request->hasParam("type", true)) {
       String type = request->getParam("type", true)->value();
       if (type == "parcel") {
-        if (currentState == LOCKED) {
-          Serial.println("Web command: OPEN_PARCEL. State -> OPENING_TO_PARCEL");
-          strncpy(lastUsed, "webinterface", sizeof(lastUsed) - 1);
-          startMelodyPlayback(config.selectedMelody);
-          delay(OPENING_DELAY_MS);
-          currentState = OPENING_TO_PARCEL;
-        }
+        requestParcelOpening("webinterface");
       } else if (type == "all") {
-        if (currentState == LOCKED) {
-          Serial.println("Web command: OPEN_ALL. State -> OPENING_TO_MAIL");
-          strncpy(lastUsed, "webinterface", sizeof(lastUsed) - 1);
-          startMelodyPlayback(config.selectedMelody);
-          delay(OPENING_DELAY_MS);
-          currentState = OPENING_TO_MAIL;
-        }
+        requestMailOpening("webinterface");
       }
       request->send(200, "text/plain", "OK");
     } else {
@@ -388,6 +398,7 @@ void loopMotor() {
   unsigned long elapsedTime = millis() - motorStartTime;
   int dutyCycle;
 
+  noInterrupts();
   switch (currentState) {
     case OPENING_TO_PARCEL:
     case OPENING_TO_MAIL:
@@ -415,13 +426,17 @@ void loopMotor() {
 
       break;
     case LOCKED:
+      openSequenceDone(); // No break on purpose
     case PARCEL_OPEN:
     case MAIL_OPEN:
     case MOTOR_ERROR:
+      
       analogWrite(MOTOR_PIN_1, 255);
       analogWrite(MOTOR_PIN_2, 255);
+      
       break;
   }
+  interrupts();
 }
 
 void loopLeds() {
@@ -503,12 +518,7 @@ void loopWiegand() {
         JsonArray array = doc.as<JsonArray>();
         for (JsonObject obj : array) {
           if (String(obj["code"]) == String(codeStr)) {
-            Serial.println("Owner code matched. State -> OPENING_TO_MAIL");
-            strncpy(lastUsed, obj["label"], sizeof(lastUsed) - 1);
-            startMelodyPlayback(config.selectedMelody);
-            delay(OPENING_DELAY_MS);
-            currentState = OPENING_TO_MAIL;
-
+            requestMailOpening(obj["label"]);
             return; 
           }
         }
@@ -519,11 +529,7 @@ void loopWiegand() {
         JsonArray array = doc.as<JsonArray>();
         for (JsonObject obj : array) {
           if (String(obj["code"]) == String(codeStr)) {
-            Serial.println("Delivery code matched. State -> OPENING_TO_PARCEL");
-            strncpy(lastUsed, obj["label"], sizeof(lastUsed) - 1);
-            startMelodyPlayback(config.selectedMelody);
-            delay(OPENING_DELAY_MS);
-            currentState = OPENING_TO_PARCEL;
+            requestParcelOpening(obj["label"]);
             return;
           }
         }
@@ -548,21 +554,9 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
 
   if (String(topic) == "paketkasten/command") {
     if (message == "OPEN_PARCEL") {
-      if (currentState == LOCKED) {
-        Serial.println("MQTT command: OPEN_PARCEL. State -> OPENING_TO_PARCEL");
-        strncpy(lastUsed, "mqtt", sizeof(lastUsed) - 1);
-        startMelodyPlayback(config.selectedMelody);
-        delay(OPENING_DELAY_MS);
-        currentState = OPENING_TO_PARCEL;
-      }
+      requestParcelOpening("mqtt");
     } else if (message == "OPEN_MAIL") {
-      if (currentState == LOCKED) {
-        Serial.println("MQTT command: OPEN_MAIL. State -> OPENING_TO_TO_MAIL");
-        strncpy(lastUsed, "mqtt", sizeof(lastUsed) - 1);
-        startMelodyPlayback(config.selectedMelody);
-        delay(OPENING_DELAY_MS);
-        currentState = OPENING_TO_MAIL;
-      }
+      requestMailOpening("mqtt");
     }
   }
 }
