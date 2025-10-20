@@ -12,6 +12,7 @@
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 #include <Bounce2.h>
+#include <vector>
 
 // Pin definitions
 const int MOTOR_PIN_1 = 33;
@@ -56,6 +57,7 @@ unsigned long openStateEnterTime = 0;
 unsigned long preOpeningStateEnterTime = 0;
 unsigned long motorStartTime = 0;
 bool shouldRestart = false;
+std::vector<String> mqttMessageQueue;
 
 // Melody playback variables
 int* currentMelody = nullptr;
@@ -89,6 +91,7 @@ void receivedWiegandCode(char* code, uint8_t bits);
 void loadConfiguration();
 void saveConfiguration();
 void publishState();
+void handleMqttQueue();
 void mqttCallback(char* topic, byte* payload, unsigned int length);
 void startMelodyPlayback(String melodyName);
 void loopMelody();
@@ -138,9 +141,10 @@ void loop() {
     currentState = LOCKING;
   }
 
+  
+  loopSwitches();
   loopMotor();
   loopLeds();
-  loopSwitches();
   loopMelody();
   
   static unsigned long noSwitchActiveSince = 0;
@@ -160,7 +164,7 @@ void loop() {
     }
   }
 
-  if (currentState == LOCKED || currentState == PARCEL_OPEN || currentState == MAIL_OPEN || currentState == MOTOR_ERROR) {
+  if (currentState == LOCKED || currentState == MOTOR_ERROR) {
     loopWiegand();
     loopWebServer();
     loopMqtt();
@@ -588,18 +592,27 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   }
 }
 
+void handleMqttQueue() {
+    if (mqttClient.connected() && !mqttMessageQueue.empty()) {
+        String stateTopic = "paketkasten/state";
+        for (const auto& msg : mqttMessageQueue) {
+            Serial.print("Publishing state to MQTT: ");
+            Serial.println(msg);
+            mqttClient.publish(stateTopic.c_str(), msg.c_str());
+        }
+        mqttMessageQueue.clear();
+    }
+}
+
 void publishState() {
-  if (mqttClient.connected()) {
-    String stateTopic = "paketkasten/state";
-    JsonDocument doc;
-    doc["state"] = getMailboxStateString();
-    doc["last_used"] = lastUsed;
-    String output;
-    serializeJson(doc, output);
-    Serial.print("Publishing state to MQTT: ");
-    Serial.println(output);
-    mqttClient.publish(stateTopic.c_str(), output.c_str());
-  }
+  JsonDocument doc;
+  doc["state"] = getMailboxStateString();
+  doc["last_used"] = lastUsed;
+  String output;
+  serializeJson(doc, output);
+  Serial.print("Queuing state for MQTT: ");
+  Serial.println(output);
+  mqttMessageQueue.push_back(output);
 }
 
 String getMailboxStateString() {
@@ -646,6 +659,7 @@ void loopMqtt() {
         }
       }
     }
+    handleMqttQueue();
   }
 }
 
