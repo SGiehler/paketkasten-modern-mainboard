@@ -137,31 +137,46 @@ void loop() {
     currentState = OPENING_TO_MAIL;
   }
 
-  if ((currentState == PARCEL_OPEN || currentState == MAIL_OPEN) && (millis() - openStateEnterTime > 1000)) {
-    currentState = LOCKING;
-  }
-
-  noInterrupts();
+  
   loopSwitches();
   loopMotor();
-  interrupts();
   loopLeds();
   loopMelody();
-  
-  static unsigned long noSwitchActiveSince = 0;
-  bool anySwitchActive = closedSwitch.isPressed() || parcelSwitch.isPressed() || mailSwitch.isPressed();
 
-  if (anySwitchActive) {
-    noSwitchActiveSince = 0;
-  } else {
-    if (noSwitchActiveSince == 0) {
-      noSwitchActiveSince = millis();
+  if (currentState != MOTOR_ERROR) {
+    bool shouldLock = false;
+
+    if ((currentState == MAIL_OPEN || currentState == PARCEL_OPEN) && (millis() - openStateEnterTime > 1000)) {
+      Serial.println("Regular Lock");
+      shouldLock = true;
     }
-  }
 
-  if (noSwitchActiveSince != 0 && (millis() - noSwitchActiveSince > 10000)) {
-    if (currentState != OPENING_TO_PARCEL && currentState != OPENING_TO_MAIL && currentState != LOCKING && currentState != MOTOR_ERROR) {
-        currentState = LOCKING;
+    static unsigned long noSwitchActiveSince = 0;
+    bool anySwitchActive = closedSwitch.isPressed() || parcelSwitch.isPressed() || mailSwitch.isPressed();
+
+    if (anySwitchActive) {
+      noSwitchActiveSince = 0;
+    } else {
+      if (noSwitchActiveSince == 0) {
+        noSwitchActiveSince = millis();
+      }
+    }
+
+    if (noSwitchActiveSince != 0 && (millis() - noSwitchActiveSince > 10000)) {
+      if (currentState != OPENING_TO_PARCEL && currentState != OPENING_TO_MAIL && currentState != LOCKING) {
+        Serial.println("No switch Lock");
+        shouldLock = true;
+      }
+    }
+
+    // if locked is the current state but the locked switch isn't pressed set locking.
+    if (currentState == LOCKED && !closedSwitch.isPressed()) {
+      Serial.println("Default Lock");
+      shouldLock = true;
+    }
+
+    if (shouldLock) {
+      currentState = LOCKING;
     }
   }
 
@@ -437,10 +452,10 @@ void loopMotor() {
       } else if (elapsedTime < (RAMP_DOWN_MS + FULL_POWER_MS)) {
         dutyCycle = 255 - (255 - config.dutyCycleOpen) * (elapsedTime - 100) / RAMP_DOWN_MS;
       }
-
+      noInterrupts();
       analogWrite(MOTOR_PIN_1, dutyCycle);
       analogWrite(MOTOR_PIN_2, 0);
-
+      interrupts();
       break;
     case LOCKING:
       dutyCycle = config.dutyCycleClose;
@@ -449,20 +464,20 @@ void loopMotor() {
       } else if (elapsedTime < (RAMP_DOWN_MS + FULL_POWER_MS)) { 
         dutyCycle = 255 - (255 - config.dutyCycleClose) * (elapsedTime - 50) / RAMP_DOWN_MS;
       }
-
+      noInterrupts();
       analogWrite(MOTOR_PIN_1, 0);
       analogWrite(MOTOR_PIN_2, dutyCycle);
-
+      interrupts();
       break;
     case LOCKED:
       openSequenceDone(); // No break on purpose
     case PARCEL_OPEN:
     case MAIL_OPEN:
     case MOTOR_ERROR:
-      
+      noInterrupts();
       analogWrite(MOTOR_PIN_1, 255);
       analogWrite(MOTOR_PIN_2, 255);
-      
+      interrupts();
       break;
   }
   
