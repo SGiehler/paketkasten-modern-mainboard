@@ -53,6 +53,7 @@ PubSubClient mqttClient(wifiClient);
 char lastScannedWiegandId[20] = "";
 char lastUsed[50] = "unknown";
 unsigned long openStateEnterTime = 0;
+unsigned long preOpeningStateEnterTime = 0;
 unsigned long motorStartTime = 0;
 bool shouldRestart = false;
 
@@ -126,6 +127,13 @@ void setup() {
 
 void loop() {
 
+  if (currentState == PRE_OPENING_TO_PARCEL && (millis() - preOpeningStateEnterTime > OPENING_DELAY_MS)) {
+    currentState = OPENING_TO_PARCEL;
+  }
+  if (currentState == PRE_OPENING_TO_MAIL && (millis() - preOpeningStateEnterTime > OPENING_DELAY_MS)) {
+    currentState = OPENING_TO_MAIL;
+  }
+
   if ((currentState == PARCEL_OPEN || currentState == MAIL_OPEN) && (millis() - openStateEnterTime > 1000)) {
     currentState = LOCKING;
   }
@@ -135,6 +143,23 @@ void loop() {
   loopSwitches();
   loopMelody();
   
+  static unsigned long noSwitchActiveSince = 0;
+  bool anySwitchActive = closedSwitch.isPressed() || parcelSwitch.isPressed() || mailSwitch.isPressed();
+
+  if (anySwitchActive) {
+    noSwitchActiveSince = 0;
+  } else {
+    if (noSwitchActiveSince == 0) {
+      noSwitchActiveSince = millis();
+    }
+  }
+
+  if (noSwitchActiveSince != 0 && (millis() - noSwitchActiveSince > 10000)) {
+    if (currentState != OPENING_TO_PARCEL && currentState != OPENING_TO_MAIL && currentState != LOCKING && currentState != MOTOR_ERROR) {
+        currentState = LOCKING;
+    }
+  }
+
   if (currentState == LOCKED || currentState == PARCEL_OPEN || currentState == MAIL_OPEN || currentState == MOTOR_ERROR) {
     loopWiegand();
     loopWebServer();
@@ -188,21 +213,21 @@ void factoryReset() {
 
 void requestParcelOpening(const char* requester) {
   if (currentState == LOCKED) {
-    Serial.println("Request: OPEN_PARCEL. State -> OPENING_TO_PARCEL");
+    Serial.println("Request: OPEN_PARCEL. State -> PRE_OPENING_TO_PARCEL");
     strncpy(lastUsed, requester, sizeof(lastUsed) - 1);
     startMelodyPlayback(config.selectedMelody);
-    delay(OPENING_DELAY_MS);
-    currentState = OPENING_TO_PARCEL;
+    preOpeningStateEnterTime = millis();
+    currentState = PRE_OPENING_TO_PARCEL;
   }
 }
 
 void requestMailOpening(const char* requester) {
   if (currentState == LOCKED) {  
-    Serial.println("Request: OPEN_MAIL. State -> OPENING_TO_MAIL");
+    Serial.println("Request: OPEN_MAIL. State -> PRE_OPENING_TO_MAIL");
     strncpy(lastUsed, requester, sizeof(lastUsed) - 1);
     startMelodyPlayback(config.selectedMelody);
-    delay(OPENING_DELAY_MS);
-    currentState = OPENING_TO_MAIL;
+    preOpeningStateEnterTime = millis();
+    currentState = PRE_OPENING_TO_MAIL;
   }
 }
 
@@ -450,7 +475,9 @@ void loopLeds() {
       digitalWrite(GREEN_LED_PIN, HIGH);
       digitalWrite(RED_LED_PIN, LOW);
       break;
+    case PRE_OPENING_TO_PARCEL:
     case OPENING_TO_PARCEL:
+    case PRE_OPENING_TO_MAIL:
     case OPENING_TO_MAIL:
     case LOCKING:
       digitalWrite(GREEN_LED_PIN, LOW);
@@ -579,10 +606,14 @@ String getMailboxStateString() {
   switch (currentState) {
     case LOCKED:
       return "LOCKED";
+    case PRE_OPENING_TO_PARCEL:
+      return "PRE_OPENING_TO_PARCEL";
     case OPENING_TO_PARCEL:
       return "OPENING_TO_PARCEL";
     case PARCEL_OPEN:
       return "PARCEL_OPEN";
+    case PRE_OPENING_TO_MAIL:
+      return "PRE_OPENING_TO_MAIL";
     case OPENING_TO_MAIL:
       return "OPENING_TO_MAIL";
     case MAIL_OPEN:
