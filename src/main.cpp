@@ -141,9 +141,10 @@ void loop() {
     currentState = LOCKING;
   }
 
-  
+  noInterrupts();
   loopSwitches();
   loopMotor();
+  interrupts();
   loopLeds();
   loopMelody();
   
@@ -427,7 +428,6 @@ void loopMotor() {
   unsigned long elapsedTime = millis() - motorStartTime;
   int dutyCycle;
 
-  noInterrupts();
   switch (currentState) {
     case OPENING_TO_PARCEL:
     case OPENING_TO_MAIL:
@@ -465,7 +465,7 @@ void loopMotor() {
       
       break;
   }
-  interrupts();
+  
 }
 
 void loopLeds() {
