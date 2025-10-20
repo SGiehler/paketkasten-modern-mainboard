@@ -297,10 +297,10 @@
 
     <h2>Duty Cycles</h2>
     <div class="label">Open: <output for="dutyCycleOpen" id="dutyCycleOpenValue"></output></div>
-    <input type="range" id="dutyCycleOpen" name="dutyCycleOpen" min="50" max="130">
+    <input type="range" id="dutyCycleOpen" name="dutyCycleOpen" min="20" max="130">
 
     <div class="label">Close: <output for="dutyCycleClose" id="dutyCycleCloseValue"></output></div>
-    <input type="range" id="dutyCycleClose" name="dutyCycleClose" min="50" max="100">
+    <input type="range" id="dutyCycleClose" name="dutyCycleClose" min="20" max="100">
 
     <h2>Melody</h2>
     <label for="melodySelect">Select Melody:</label>
@@ -469,8 +469,8 @@
         document.getElementById('mqttUser').value = data.mqttUser || '';
         document.getElementById('dutyCycleOpen').value = data.dutyCycleOpen || 120;
         document.getElementById('dutyCycleOpenValue').value = data.dutyCycleOpen || 120;
-        document.getElementById('dutyCycleClose').value = data.dutyCycleClose || 90;
-        document.getElementById('dutyCycleCloseValue').value = data.dutyCycleClose || 90;
+        document.getElementById('dutyCycleClose').value = data.dutyCycleClose || 20;
+        document.getElementById('dutyCycleCloseValue').value = data.dutyCycleClose || 20;
         document.getElementById('melodySelect').value = data.selectedMelody || 'NOKIA_TUNE'; // Default to Nokia Tune
 
         const ownerCodes = JSON.parse(data.ownerCodes || '[]');

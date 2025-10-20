@@ -203,7 +203,7 @@ void loadConfiguration() {
   config.mqttUser = preferences.getString(MQTT_USER_KEY, "");
   config.mqttPassword = preferences.getString(MQTT_PASSWORD_KEY, "");
   config.dutyCycleOpen = preferences.getInt(DUTY_CYCLE_OPEN_KEY, 120);
-  config.dutyCycleClose = preferences.getInt(DUTY_CYCLE_CLOSE_KEY, 90);
+  config.dutyCycleClose = preferences.getInt(DUTY_CYCLE_CLOSE_KEY, 20);
   config.selectedMelody = preferences.getString(SELECTED_MELODY_KEY, "NOKIA_TUNE");
   preferences.end();
 }
