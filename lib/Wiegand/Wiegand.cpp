@@ -19,8 +19,17 @@ void Wiegand::begin(uint8_t pinD0, uint8_t pinD1) {
     pinMode(_pinD0, INPUT_PULLUP);
     pinMode(_pinD1, INPUT_PULLUP);
 
+    attach();
+}
+
+void Wiegand::attach() {
     attachInterrupt(digitalPinToInterrupt(_pinD0), data0ISR, FALLING);
     attachInterrupt(digitalPinToInterrupt(_pinD1), data1ISR, FALLING);
+}
+
+void Wiegand::detach() {
+    detachInterrupt(digitalPinToInterrupt(_pinD0));
+    detachInterrupt(digitalPinToInterrupt(_pinD1));
 }
 
 void IRAM_ATTR Wiegand::data0ISR() {

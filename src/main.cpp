@@ -26,8 +26,6 @@ const int WIEGAND_D0_PIN = 27;
 const int WIEGAND_D1_PIN = 26;
 const int BUZZER_PIN = 21;
 
-#define OPENING_DELAY_MS 700
-
 // Bounce Buttons
 Bounce2::Button closedSwitch = Bounce2::Button();
 Bounce2::Button parcelSwitch = Bounce2::Button();
@@ -36,13 +34,14 @@ int debounceDelay = 1; // in ms
 
 // Inverting flags
 const bool INVERT_SWITCH_STATE = false;
-const char* SOFTAP_PASSWORD = "mLbbY7EyS";
+const char* SOFTAP_PASSWORD = "G67zC4OiB";
 
 // Movement Settings
 const int PWM_FREQ = 50000;
 const int FULL_POWER_MS = 100;
 const int FULL_POWER_DUTY_CYCLE = 160;
 const int RAMP_DOWN_MS = 10;
+const int OPENING_DELAY_MS = 700;
 
 MailboxState currentState = LOCKED;
 Wiegand wiegand;
@@ -68,7 +67,6 @@ unsigned long noteStartTime = 0;
 int noteDuration = 0;
 bool melodyPlaying = false;
 int wholenote = 1000;
-
 
 // Function declarations
 void setupMotor();
@@ -137,7 +135,6 @@ void loop() {
     currentState = OPENING_TO_MAIL;
   }
 
-  
   loopSwitches();
   loopMotor();
   loopLeds();
@@ -234,6 +231,7 @@ void factoryReset() {
 void requestParcelOpening(const char* requester) {
   if (currentState == LOCKED) {
     Serial.println("Request: OPEN_PARCEL. State -> PRE_OPENING_TO_PARCEL");
+    wiegand.detach();
     strncpy(lastUsed, requester, sizeof(lastUsed) - 1);
     startMelodyPlayback(config.selectedMelody);
     preOpeningStateEnterTime = millis();
@@ -242,8 +240,9 @@ void requestParcelOpening(const char* requester) {
 }
 
 void requestMailOpening(const char* requester) {
-  if (currentState == LOCKED) {  
+  if (currentState == LOCKED) {
     Serial.println("Request: OPEN_MAIL. State -> PRE_OPENING_TO_MAIL");
+    wiegand.detach();
     strncpy(lastUsed, requester, sizeof(lastUsed) - 1);
     startMelodyPlayback(config.selectedMelody);
     preOpeningStateEnterTime = millis();
@@ -252,6 +251,7 @@ void requestMailOpening(const char* requester) {
 }
 
 void openSequenceDone() {
+  wiegand.attach();
 }
 
 void setupMotor() {

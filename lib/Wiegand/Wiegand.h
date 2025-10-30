@@ -7,6 +7,8 @@ class Wiegand {
 public:
     Wiegand();
     void begin(uint8_t pinD0, uint8_t pinD1);
+    void attach();
+    void detach();
     void loop();
     bool isAvailable();
     uint32_t getCode();
