@@ -126,6 +126,26 @@
     background-color: var(--danger-color-hover);
     border-color: var(--danger-color-hover);
   }
+
+  .btn.icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0;
+  }
+  .icon-btn .icon {
+    padding: 12px;
+    font-size: 1.2em;
+  }
+  .icon-btn .separator {
+    border-left: 1px solid rgba(255, 255, 255, 0.4);
+    align-self: stretch;
+  }
+  .icon-btn .text {
+    flex-grow: 1;
+    text-align: center;
+    padding: 12px;
+  }
   
   .code-entry {
     display: flex;
@@ -256,8 +276,16 @@
       <div class="diagnostic-item">
         <div class="label">Actions</div>
         <div class="value">
-          <button type="button" class="btn btn-primary" style="margin-bottom: 5px;" onclick="openMailbox('parcel')">Open Parcel</button>
-          <button type="button" class="btn btn-primary" onclick="openMailbox('all')">Open Mail</button>
+          <button type="button" class="btn btn-primary icon-btn" style="margin-bottom: 5px;" onclick="openMailbox('parcel')">
+            <span class="icon">📦</span>
+            <span class="separator"></span>
+            <span class="text">Open Parcel</span>
+          </button>
+          <button type="button" class="btn btn-primary icon-btn" onclick="openMailbox('all')">
+            <span class="icon">✉️</span>
+            <span class="separator"></span>
+            <span class="text">Open Mail</span>
+          </button>
         </div>
       </div>
 
@@ -275,12 +303,20 @@
     <div id="ownerCodes">
       <label>Owner Codes:</label>
     </div>
-    <button type="button" class="btn btn-primary" onclick="addCode('owner')">Add Owner Code</button>
+    <button type="button" class="btn btn-primary icon-btn" onclick="addCode('owner')">
+        <span class="icon">➕</span>
+        <span class="separator"></span>
+        <span class="text">Add Owner Code</span>
+    </button>
     
     <div id="deliveryCodes" style="margin-top: 20px;">
       <label>Delivery Codes:</label>
     </div>
-    <button type="button" class="btn btn-primary" onclick="addCode('delivery')">Add Delivery Code</button>
+    <button type="button" class="btn btn-primary icon-btn" onclick="addCode('delivery')">
+        <span class="icon">➕</span>
+        <span class="separator"></span>
+        <span class="text">Add Delivery Code</span>
+    </button>
 
     <input type="hidden" id="ownerCodesJson" name="ownerCodes">
     <input type="hidden" id="deliveryCodesJson" name="deliveryCodes">
@@ -312,12 +348,30 @@
       <option value="INTEL_INSIDE">Intel Inside</option>
       <option value="TETRIS">Tetris</option>
     </select>
-    <button type="button" class="btn btn-primary" onclick="playSelectedMelody()">Play Melody</button>
+    <button type="button" class="btn btn-primary icon-btn" onclick="playSelectedMelody()">
+        <span class="icon">🎵</span>
+        <span class="separator"></span>
+        <span class="text">Play Melody</span>
+    </button>
 
     <div class="divider"></div>
 
-    <input type="submit" class="btn btn-primary" value="Save Configuration">
-    <button type="button" class="btn btn-danger" onclick="factoryReset()">Factory Reset</button>
+    <button type="submit" class="btn btn-primary icon-btn">
+        <span class="icon">💾</span>
+        <span class="separator"></span>
+        <span class="text">Save Configuration & Reboot</span>
+    </button>
+    <a href="/update" class="btn btn-primary icon-btn">
+        <span class="icon">🔄</span>
+        <span class="separator"></span>
+        <span class="text">Firmware Update</span>
+    </a>
+    <button type="button" class="btn btn-danger icon-btn" onclick="factoryReset()">
+        <span class="icon">⚠️</span>
+        <span class="separator"></span>
+        <span class="text">Factory Reset</span>
+    </button>
+    
   </form>
 </div>
 

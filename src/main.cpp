@@ -13,6 +13,7 @@
 #include <ArduinoJson.h>
 #include <Bounce2.h>
 #include <vector>
+#include <Update.h>
 
 // Pin definitions
 const int MOTOR_PIN_1 = 33;
@@ -295,6 +296,44 @@ void setupBuzzer() {
 void setupWebServer() {
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(LittleFS, "/index.html", "text/html");
+  });
+
+  server.on("/update", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(LittleFS, "/update.html", "text/html");
+  });
+
+  server.on("/update", HTTP_POST, [](AsyncWebServerRequest *request){
+    shouldRestart = !Update.hasError();
+    AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", shouldRestart ? "OK" : "FAIL");
+    response->addHeader("Connection", "close");
+    request->send(response);
+  }, [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final){
+    if(!index){
+      int cmd = U_FLASH; // Default to firmware update
+      if(request->hasParam("type")) {
+        String type = request->getParam("type")->value();
+        if(type == "filesystem") {
+          cmd = U_SPIFFS;
+        }
+      }
+      
+      Serial.printf("Update Start: %s\n", filename.c_str());
+      if(!Update.begin(UPDATE_SIZE_UNKNOWN, cmd)){
+        Update.printError(Serial);
+      }
+    }
+    if(!Update.hasError()){
+      if(Update.write(data, len) != len){
+        Update.printError(Serial);
+      }
+    }
+    if(final){
+      if(Update.end(true)){
+        Serial.printf("Update Success: %uB\n", index+len);
+      } else {
+        Update.printError(Serial);
+      }
+    }
   });
 
   server.on("/config", HTTP_GET, [](AsyncWebServerRequest *request){

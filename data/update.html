@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Firmware Update</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --primary-color: #007bff;
+    --primary-color-hover: #0056b3;
+    --danger-color: #dc3545;
+    --danger-color-hover: #c82333;
+    --light-bg: #f8f9fa;
+    --dark-bg: #212529;
+    --light-color: #212529;
+    --dark-color: #f8f9fa;
+    --light-border: #dee2e6;
+    --dark-border: #495057;
+    --light-input-bg: #fff;
+    --dark-input-bg: #343a40;
+    --success-color: #28a745;
+    --off-color: #6c757d;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: var(--light-bg);
+    color: var(--light-color);
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    box-sizing: border-box;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 600px;
+  }
+
+  h1, h2 {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  h1 {
+    font-size: 2.5rem;
+  }
+  
+  h2 {
+    font-size: 1.75rem;
+    border-bottom: 1px solid var(--light-border);
+    padding-bottom: 10px;
+    margin-top: 20px;
+  }
+
+  .box {
+    background-color: var(--light-input-bg);
+    padding: 20px 30px 30px 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+  }
+
+  .btn {
+    display: inline-block;
+    font-weight: 400;
+    text-align: center;
+    vertical-align: middle;
+    cursor: pointer;
+    border: 1px solid transparent;
+    padding: 12px 20px;
+    font-size: 1rem;
+    border-radius: 4px;
+    text-decoration: none;
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 10px;
+  }
+
+  .btn-primary {
+    color: #fff;
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+  }
+
+  .btn-primary:hover {
+    background-color: var(--primary-color-hover);
+    border-color: var(--primary-color-hover);
+  }
+
+  .progress {
+    width: 100%;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    margin-top: 20px;
+    overflow: hidden;
+  }
+
+  .bar {
+    width: 0%;
+    height: 20px;
+    background-color: var(--primary-color);
+    text-align: center;
+    line-height: 20px;
+    color: white;
+    transition: width .3s ease;
+  }
+
+  .status {
+    margin-top: 15px;
+    text-align: center;
+  }
+
+  input[type="file"] {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 20px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    body {
+      background-color: var(--dark-bg);
+      color: var(--dark-color);
+    }
+    .box {
+      background-color: var(--dark-input-bg);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    }
+    h2 {
+      border-bottom-color: var(--dark-border);
+    }
+    .progress {
+        background-color: var(--dark-border);
+    }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Firmware Update</h1>
+  <div class="box">
+    <h2>Upload Firmware</h2>
+    <form id="upload_form_fw" action="/update?type=firmware" enctype="multipart/form-data" method="post">
+        <label for="update_fw">Select firmware file (.bin):</label>
+        <input type="file" name="update" id="update_fw" accept=".bin">
+        <input type="submit" value="Update Firmware" class="btn btn-primary">
+    </form>
+    <div class="progress">
+        <div class="bar" id="bar_fw">0%</div>
+    </div>
+    <div class="status" id="status_fw"></div>
+
+    <h2 style="margin-top: 40px;">Upload Filesystem</h2>
+    <form id="upload_form_fs" action="/update?type=filesystem" enctype="multipart/form-data" method="post">
+        <label for="update_fs">Select filesystem file (.bin):</label>
+        <input type="file" name="update" id="update_fs" accept=".bin">
+        <input type="submit" value="Update Filesystem" class="btn btn-primary">
+    </form>
+    <div class="progress">
+        <div class="bar" id="bar_fs">0%</div>
+    </div>
+    <div class="status" id="status_fs"></div>
+
+    <a href="/" class="btn" style="background-color: #6c757d; color: white; margin-top: 15px;">Go Back</a>
+  </div>
+</div>
+
+<script>
+    function setupUploadForm(formId, barId, statusId) {
+        document.getElementById(formId).addEventListener('submit', function(e) {
+            e.preventDefault();
+            var form = e.target;
+            var data = new FormData(form);
+            var fileInput = form.querySelector('input[type="file"]');
+            var file = fileInput.files[0];
+            if (!file) {
+                document.getElementById(statusId).innerHTML = "Please select a file.";
+                return;
+            }
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', form.action, true);
+
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                    var percentComplete = (e.loaded / e.total) * 100;
+                    var bar = document.getElementById(barId);
+                    bar.style.width = percentComplete + '%';
+                    bar.innerHTML = Math.round(percentComplete) + '%';
+                }
+            });
+
+            xhr.onload = function() {
+                var statusEl = document.getElementById(statusId);
+                if (xhr.status === 200) {
+                    statusEl.innerHTML = "Update successful! Rebooting...";
+                    statusEl.style.color = "var(--success-color)";
+                    setTimeout(function(){ window.location.href = '/'; }, 5000);
+                } else {
+                    statusEl.innerHTML = "Update failed: " + xhr.responseText;
+                    statusEl.style.color = "var(--danger-color)";
+                }
+            }; 
+            
+            xhr.onerror = function() {
+                var statusEl = document.getElementById(statusId);
+                statusEl.innerHTML = "Update failed: Connection error.";
+                statusEl.style.color = "var(--danger-color)";
+            };
+
+            xhr.send(data);
+        });
+    }
+
+    setupUploadForm('upload_form_fw', 'bar_fw', 'status_fw');
+    setupUploadForm('upload_form_fs', 'bar_fs', 'status_fs');
+</script>
+</body>
+</html>
