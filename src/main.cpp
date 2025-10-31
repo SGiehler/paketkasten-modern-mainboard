@@ -14,6 +14,7 @@
 #include <Bounce2.h>
 #include <vector>
 #include <Update.h>
+#include <HTTPClient.h>
 
 // Pin definitions
 const int MOTOR_PIN_1 = 33;
@@ -95,6 +96,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length);
 void startMelodyPlayback(String melodyName);
 void loopMelody();
 void factoryReset();
+void triggerCallback(const char* compartment);
 void requestParcelOpening(const char* requester);
 void requestMailOpening(const char* requester);
 void opensequenceDone();
@@ -203,6 +205,7 @@ void loadConfiguration() {
   config.dutyCycleOpen = preferences.getInt(DUTY_CYCLE_OPEN_KEY, 120);
   config.dutyCycleClose = preferences.getInt(DUTY_CYCLE_CLOSE_KEY, 20);
   config.selectedMelody = preferences.getString(SELECTED_MELODY_KEY, "NOKIA_TUNE");
+  config.callbackUrl = preferences.getString(CALLBACK_URL_KEY, "");
   preferences.end();
 }
 
@@ -219,6 +222,7 @@ void saveConfiguration() {
   preferences.putInt(DUTY_CYCLE_OPEN_KEY, config.dutyCycleOpen);
   preferences.putInt(DUTY_CYCLE_CLOSE_KEY, config.dutyCycleClose);
   preferences.putString(SELECTED_MELODY_KEY, config.selectedMelody);
+  preferences.putString(CALLBACK_URL_KEY, config.callbackUrl);
   preferences.end();
 }
 
@@ -229,8 +233,27 @@ void factoryReset() {
   Serial.println("All preferences cleared.");
 }
 
+void triggerCallback(const char* compartment) {
+  if (config.callbackUrl.length() > 0) {
+    String url = config.callbackUrl;
+    url.replace("{compartment}", compartment);
+    HTTPClient http;
+    http.begin(url);
+    int httpCode = http.GET();
+    if (httpCode > 0) {
+      String payload = http.getString();
+      Serial.println(httpCode);
+      Serial.println(payload);
+    } else {
+      Serial.println("Error on HTTP request");
+    }
+    http.end();
+  }
+}
+
 void requestParcelOpening(const char* requester) {
   if (currentState == LOCKED) {
+    triggerCallback("parcel");
     Serial.println("Request: OPEN_PARCEL. State -> PRE_OPENING_TO_PARCEL");
     wiegand.detach();
     strncpy(lastUsed, requester, sizeof(lastUsed) - 1);
@@ -242,6 +265,7 @@ void requestParcelOpening(const char* requester) {
 
 void requestMailOpening(const char* requester) {
   if (currentState == LOCKED) {
+    triggerCallback("mail");
     Serial.println("Request: OPEN_MAIL. State -> PRE_OPENING_TO_MAIL");
     wiegand.detach();
     strncpy(lastUsed, requester, sizeof(lastUsed) - 1);
@@ -348,6 +372,7 @@ void setupWebServer() {
     doc["dutyCycleOpen"] = config.dutyCycleOpen;
     doc["dutyCycleClose"] = config.dutyCycleClose;
     doc["selectedMelody"] = config.selectedMelody;
+    doc["callbackUrl"] = config.callbackUrl;
     serializeJson(doc, jsonConfig);
     request->send(200, "application/json", jsonConfig);
   });
@@ -369,6 +394,7 @@ void setupWebServer() {
     config.dutyCycleOpen = request->arg("dutyCycleOpen").toInt();
     config.dutyCycleClose = request->arg("dutyCycleClose").toInt();
     config.selectedMelody = request->arg("selectedMelody");
+    config.callbackUrl = request->arg("callbackUrl");
     saveConfiguration();
     delay(500);
     Serial.println("Configuration saved. Restarting...");

@@ -15,6 +15,7 @@ struct Config {
   int dutyCycleOpen;
   int dutyCycleClose;
   String selectedMelody;
+  String callbackUrl;
 };
 
 const char* const PREFERENCES_NAMESPACE = "mailbox";
@@ -29,5 +30,6 @@ const char* const MQTT_PASSWORD_KEY = "mqttPassword";
 const char* const DUTY_CYCLE_OPEN_KEY = "dutyCycleOpen";
 const char* const DUTY_CYCLE_CLOSE_KEY = "dutyCycleClose";
 const char* const SELECTED_MELODY_KEY = "selectedMelody";
+const char* const CALLBACK_URL_KEY = "callbackUrl";
 
 #endif
