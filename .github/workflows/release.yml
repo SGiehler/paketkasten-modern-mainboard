@@ -11,6 +11,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      PLATFORMIO_BUILD_FLAGS: "-DFIRMWARE_VERSION='\"${{ github.ref_name }}\"'"
 
     steps:
     - uses: actions/checkout@v4
@@ -26,8 +28,6 @@ jobs:
       if: startsWith(github.ref, 'refs/tags/')
       run: python set_ui_version.py ${{ github.ref_name }}
     - name: Build PlatformIO Project
-      env:
-        PLATFORMIO_BUILD_FLAGS: "-DFIRMWARE_VERSION='\"${{ github.ref_name }}\"'"
       run: pio run -e esp32dev
     - name: Build Filesystem Image
       run: pio run -t buildfs
