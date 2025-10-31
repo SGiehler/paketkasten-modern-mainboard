@@ -321,6 +321,15 @@
     <input type="hidden" id="ownerCodesJson" name="ownerCodes">
     <input type="hidden" id="deliveryCodesJson" name="deliveryCodes">
 
+    <h2>HTTP Callback</h2>
+    <label for="callbackUrl">Callback URL:</label>
+    <input type="text" id="callbackUrl" name="callbackUrl" placeholder="http://[ip]/callback?comp={compartment}">
+    <p>Will be called when opening compartment.</p>
+    <p>Available variable:</p>
+    <ul>
+      <li>{compartment} = mail or parcel</li> 
+    </ul> 
+
     <h2>MQTT</h2>
     <label for="mqttServer">Server:</label>
     <input type="text" id="mqttServer" name="mqttServer">
@@ -526,6 +535,7 @@
         document.getElementById('dutyCycleClose').value = data.dutyCycleClose || 20;
         document.getElementById('dutyCycleCloseValue').value = data.dutyCycleClose || 20;
         document.getElementById('melodySelect').value = data.selectedMelody || 'NOKIA_TUNE'; // Default to Nokia Tune
+        document.getElementById('callbackUrl').value = data.callbackUrl || '';
 
         const ownerCodes = JSON.parse(data.ownerCodes || '[]');
         ownerCodes.forEach(code => createCodeEntry('owner', code.label, code.code));
