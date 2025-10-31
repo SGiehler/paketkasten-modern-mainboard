@@ -115,10 +115,24 @@
   }
 
   input[type="file"] {
-    display: block;
-    width: 100%;
-    padding: 10px;
+    display: none;
+  }
+
+  .drop-zone {
+    border: 2px dashed var(--light-border);
+    border-radius: 5px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
     margin-bottom: 20px;
+  }
+
+  .drop-zone--over {
+    border-style: solid;
+  }
+
+  .drop-zone__prompt {
+    color: #aaa;
   }
 
   @media (prefers-color-scheme: dark) {
@@ -145,8 +159,10 @@
   <div class="box">
     <h2>Upload Firmware</h2>
     <form id="upload_form_fw" action="/update?type=firmware" enctype="multipart/form-data" method="post">
-        <label for="update_fw">Select firmware file (.bin):</label>
-        <input type="file" name="update" id="update_fw" accept=".bin">
+        <div class="drop-zone" id="drop_zone_fw">
+            <span class="drop-zone__prompt">Drag & drop firmware file here or click to select</span>
+            <input type="file" name="update" id="update_fw" accept=".bin">
+        </div>
         <input type="submit" value="Update Firmware" class="btn btn-primary">
     </form>
     <div class="progress">
@@ -156,8 +172,10 @@
 
     <h2 style="margin-top: 40px;">Upload Filesystem</h2>
     <form id="upload_form_fs" action="/update?type=filesystem" enctype="multipart/form-data" method="post">
-        <label for="update_fs">Select filesystem file (.bin):</label>
-        <input type="file" name="update" id="update_fs" accept=".bin">
+        <div class="drop-zone" id="drop_zone_fs">
+            <span class="drop-zone__prompt">Drag & drop filesystem file here or click to select</span>
+            <input type="file" name="update" id="update_fs" accept=".bin">
+        </div>
         <input type="submit" value="Update Filesystem" class="btn btn-primary">
     </form>
     <div class="progress">
@@ -216,8 +234,54 @@
         });
     }
 
+    function setupDragAndDrop(dropZoneId, fileInputId) {
+        const dropZone = document.getElementById(dropZoneId);
+        const fileInput = document.getElementById(fileInputId);
+        const promptElement = dropZone.querySelector(".drop-zone__prompt");
+
+        dropZone.addEventListener("click", e => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener("change", e => {
+            if (fileInput.files.length) {
+                updatePrompt(dropZone, fileInput.files[0]);
+            }
+        });
+
+        dropZone.addEventListener("dragover", e => {
+            e.preventDefault();
+            dropZone.classList.add("drop-zone--over");
+        });
+
+        ["dragleave", "dragend"].forEach(type => {
+            dropZone.addEventListener(type, e => {
+                dropZone.classList.remove("drop-zone--over");
+            });
+        });
+
+        dropZone.addEventListener("drop", e => {
+            e.preventDefault();
+
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                updatePrompt(dropZone, e.dataTransfer.files[0]);
+            }
+
+            dropZone.classList.remove("drop-zone--over");
+        });
+
+        function updatePrompt(dropZone, file) {
+            const promptElement = dropZone.querySelector(".drop-zone__prompt");
+            promptElement.textContent = file.name;
+        }
+    }
+
     setupUploadForm('upload_form_fw', 'bar_fw', 'status_fw');
     setupUploadForm('upload_form_fs', 'bar_fs', 'status_fs');
+
+    setupDragAndDrop('drop_zone_fw', 'update_fw');
+    setupDragAndDrop('drop_zone_fs', 'update_fs');
 </script>
 </body>
 </html>

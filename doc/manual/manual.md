@@ -88,7 +88,7 @@ Das System kann Befehle über das Topic `paketkasten/command` empfangen. Aktuell
 Um den ESP32 Mikrocontroller zu flashen, gehen Sie wie folgt vor:
 
 1.  **FTDI Adapter anschließen**: Stecken Sie einen FTDI Adapter in den Header, der mit "FTDI" beschriftet ist.
-2.  **Spannungseinstellung**: Stellen Sie sicher, dass der FTDI Adapter auf **3.3V** eingestellt ist. Dies ist WICHTIG, um Schäden am ESP33 zu vermeiden.
+2.  **Spannungseinstellung**: Stellen Sie sicher, dass der FTDI Adapter auf **3.3V** eingestellt ist. Dies ist WICHTIG, um Schäden am ESP32 zu vermeiden.
 3.  **Download-Modus aktivieren**:
     *   Halten Sie die **BOOT**-Taste auf dem Mainboard gedrückt.
     *   Drücken Sie kurz die **RESET**-Taste, während Sie die BOOT-Taste weiterhin gedrückt halten.

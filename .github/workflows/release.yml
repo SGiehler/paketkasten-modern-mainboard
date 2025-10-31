@@ -14,14 +14,21 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Fetch all history for git describe
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.9'
     - name: Install PlatformIO
       run: pip install -U platformio
+    - name: Set UI version
+      if: startsWith(github.ref, 'refs/tags/')
+      run: python set_ui_version.py ${{ github.ref_name }}
     - name: Build PlatformIO Project
-      run: pio run
+      env:
+        PLATFORMIO_BUILD_FLAGS: "-DFIRMWARE_VERSION='\"${{ github.ref_name }}\"'"
+      run: pio run -e esp32dev
     - name: Build Filesystem Image
       run: pio run -t buildfs
     - name: Upload firmware binary

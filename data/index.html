@@ -274,6 +274,11 @@
         <div class="value" id="scannedId">-</div>
       </div>
       <div class="diagnostic-item">
+        <div class="label">Versions</div>
+        <div class="value">FW: <span id="firmwareVersion">-</span></div>
+        <div class="value">FS: <span id="uiVersion">-</span></div>
+      </div>
+      <div class="diagnostic-item" style="grid-column: 1 / -1;">
         <div class="label">Actions</div>
         <div class="value">
           <button type="button" class="btn btn-primary icon-btn" style="margin-bottom: 5px;" onclick="openMailbox('parcel')">
@@ -407,6 +412,8 @@
       .then(data => {
         document.getElementById('mailboxState').textContent = data.mailbox_state || '-';
         document.getElementById('scannedId').textContent = data.wiegand_id || '-';
+        document.getElementById('firmwareVersion').textContent = data.firmware_version || '-';
+        document.getElementById('uiVersion').textContent = "UI_VERSION_PLACEHOLDER";
         
         updateSwitchStatus('closedSwitch', data.closed_switch);
         updateSwitchStatus('parcelSwitch', data.parcel_switch);

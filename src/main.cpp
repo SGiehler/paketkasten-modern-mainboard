@@ -1,4 +1,9 @@
 #include <Arduino.h>
+
+#ifndef FIRMWARE_VERSION
+#define FIRMWARE_VERSION "local-dev"
+#endif
+
 #include "state.h"
 #include "config.h"
 #include "melodies.h"
@@ -416,6 +421,7 @@ void setupWebServer() {
     String jsonResponse;
     JsonDocument doc;
     doc["wiegand_id"] = lastScannedWiegandId;
+    doc["firmware_version"] = FIRMWARE_VERSION;
     doc["mailbox_state"] = getMailboxStateString();
     doc["closed_switch"] = digitalRead(CLOSED_SWITCH_PIN) == (INVERT_SWITCH_STATE ? HIGH : LOW);
     doc["parcel_switch"] = digitalRead(PARCEL_SWITCH_PIN) == (INVERT_SWITCH_STATE ? HIGH : LOW);
