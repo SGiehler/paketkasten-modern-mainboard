@@ -156,28 +156,30 @@ void loop() {
       shouldLock = true;
     }
 
-    static unsigned long noSwitchActiveSince = 0;
-    bool anySwitchActive = closedSwitch.isPressed() || parcelSwitch.isPressed() || mailSwitch.isPressed();
+    if (config.autolock) {
+      static unsigned long noSwitchActiveSince = 0;
+      bool anySwitchActive = closedSwitch.isPressed() || parcelSwitch.isPressed() || mailSwitch.isPressed();
 
-    if (anySwitchActive) {
-      noSwitchActiveSince = 0;
-    } else {
-      if (noSwitchActiveSince == 0) {
-        noSwitchActiveSince = millis();
+      if (anySwitchActive) {
+        noSwitchActiveSince = 0;
+      } else {
+        if (noSwitchActiveSince == 0) {
+          noSwitchActiveSince = millis();
+        }
       }
-    }
 
-    if (noSwitchActiveSince != 0 && (millis() - noSwitchActiveSince > 10000)) {
-      if (currentState != OPENING_TO_PARCEL && currentState != OPENING_TO_MAIL && currentState != LOCKING) {
-        Serial.println("No switch Lock");
+      if (noSwitchActiveSince != 0 && (millis() - noSwitchActiveSince > 10000)) {
+        if (currentState != OPENING_TO_PARCEL && currentState != OPENING_TO_MAIL && currentState != LOCKING) {
+          Serial.println("No switch Lock");
+          shouldLock = true;
+        }
+      }
+
+      // if locked is the current state but the locked switch isn't pressed set locking.
+      if (currentState == LOCKED && !closedSwitch.isPressed()) {
+        Serial.println("Default Lock");
         shouldLock = true;
       }
-    }
-
-    // if locked is the current state but the locked switch isn't pressed set locking.
-    if (currentState == LOCKED && !closedSwitch.isPressed()) {
-      Serial.println("Default Lock");
-      shouldLock = true;
     }
 
     if (shouldLock) {
@@ -211,6 +213,7 @@ void loadConfiguration() {
   config.dutyCycleClose = preferences.getInt(DUTY_CYCLE_CLOSE_KEY, 20);
   config.selectedMelody = preferences.getString(SELECTED_MELODY_KEY, "NOKIA_TUNE");
   config.callbackUrl = preferences.getString(CALLBACK_URL_KEY, "");
+  config.autolock = preferences.getBool(AUTOLOCK_KEY, true);
   preferences.end();
 }
 
@@ -228,6 +231,7 @@ void saveConfiguration() {
   preferences.putInt(DUTY_CYCLE_CLOSE_KEY, config.dutyCycleClose);
   preferences.putString(SELECTED_MELODY_KEY, config.selectedMelody);
   preferences.putString(CALLBACK_URL_KEY, config.callbackUrl);
+  preferences.putBool(AUTOLOCK_KEY, config.autolock);
   preferences.end();
 }
 
@@ -378,6 +382,7 @@ void setupWebServer() {
     doc["dutyCycleClose"] = config.dutyCycleClose;
     doc["selectedMelody"] = config.selectedMelody;
     doc["callbackUrl"] = config.callbackUrl;
+    doc["autolock"] = config.autolock;
     serializeJson(doc, jsonConfig);
     request->send(200, "application/json", jsonConfig);
   });
@@ -400,6 +405,7 @@ void setupWebServer() {
     config.dutyCycleClose = request->arg("dutyCycleClose").toInt();
     config.selectedMelody = request->arg("selectedMelody");
     config.callbackUrl = request->arg("callbackUrl");
+    config.autolock = request->hasArg("autolock");
     saveConfiguration();
     delay(500);
     Serial.println("Configuration saved. Restarting...");
