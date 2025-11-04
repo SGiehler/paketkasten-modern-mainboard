@@ -31,6 +31,8 @@ jobs:
       run: pio run -e esp32dev
     - name: Build Filesystem Image
       run: pio run -t buildfs
+    - name: Merge Binaries
+      run: pio pkg exec -p "tool-esptoolpy" -- esptool.py --chip esp32 merge_bin -o .pio/build/esp32dev/complete-firmware.bin 0x1000 .pio/build/esp32dev/bootloader.bin 0x8000 .pio/build/esp32dev/partitions.bin 0x10000 .pio/build/esp32dev/firmware.bin 0x150000 .pio/build/esp32dev/firmware.bin 0x290000 .pio/build/esp32dev/littlefs.bin
     - name: Upload firmware binary
       uses: actions/upload-artifact@v4
       with:
@@ -41,6 +43,11 @@ jobs:
       with:
         name: littlefs
         path: .pio/build/esp32dev/littlefs.bin
+    - name: Upload complete firmware binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: complete-firmware
+        path: .pio/build/esp32dev/complete-firmware.bin
 
   release:
     needs: [build]
@@ -56,6 +63,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: littlefs
+      - name: Download complete firmware artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: complete-firmware
       - name: Dump GitHub context
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
@@ -87,4 +98,13 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./littlefs.bin
           asset_name: littlefs-${{ github.ref_name }}.bin
+          asset_content_type: application/octet-stream
+      - name: Upload Complete Firmware Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./complete-firmware.bin
+          asset_name: complete-firmware-${{ github.ref_name }}.bin
           asset_content_type: application/octet-stream
