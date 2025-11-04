@@ -13,10 +13,12 @@ Diese Anleitung erklärt, wie Sie die Firmware und das LittleFS-Dateisystem mit 
 
 ## Flash-Vorgang
 
-1.  **Bootloader-Modus starten:**
+1.  **Download-Modus starten:**
     *   Halten Sie die **Boot**-Taste auf der Platine gedrückt.
     *   Während Sie die **Boot**-Taste gedrückt halten, drücken Sie kurz die **Reset**-Taste.
     *   Lassen Sie die **Boot**-Taste los. Das Gerät befindet sich nun im Bootloader-Modus und ist bereit zum Flashen.
+
+    ![Download-Mode](flashing.jpg)
 
 2.  **Binärdateien flashen:**
     Öffnen Sie Ihr Terminal oder Ihre Eingabeaufforderung und navigieren Sie zu dem Verzeichnis, in das Sie die Release-Dateien heruntergeladen haben. Führen Sie den folgenden Befehl aus und ersetzen Sie `<PORT>` durch den seriellen Port Ihres FTDI-Adapters (z. B. `COM3` unter Windows oder `/dev/ttyUSB0` unter Linux):

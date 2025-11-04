@@ -85,17 +85,15 @@ Das System kann Befehle über das Topic `paketkasten/command` empfangen. Aktuell
 
 # Flashen des ESP32 Mikrocontrollers
 
-Um den ESP32 Mikrocontroller zu flashen, gehen Sie wie folgt vor:
+Eine detaillierte Anleitung zum Flashen des ESP32 Mikrocontrollers mittels FTDI-Adapter finden Sie in der Datei [flashing-ftdi.md](flashing-ftdi.md).
 
-1.  **FTDI Adapter anschließen**: Stecken Sie einen FTDI Adapter in den Header, der mit "FTDI" beschriftet ist.
-2.  **Spannungseinstellung**: Stellen Sie sicher, dass der FTDI Adapter auf **3.3V** eingestellt ist. Dies ist WICHTIG, um Schäden am ESP32 zu vermeiden.
-3.  **Download-Modus aktivieren**:
-    *   Halten Sie die **BOOT**-Taste auf dem Mainboard gedrückt.
-    *   Drücken Sie kurz die **RESET**-Taste, während Sie die BOOT-Taste weiterhin gedrückt halten.
-    *   Lassen Sie die **BOOT**-Taste los.
-    Der ESP32 befindet sich nun im Download-Modus und ist bereit für das Flashen.
+## OTA Flashing
 
-![Flashing des ESP32](flashing.jpg)
+Seit der Firmware-Version 1.1.0 kann die Firmware auch bequem über die WebUI aktualisiert werden.
+
+![OTA Flash](ota_flash.png)
+
+Laden Sie dazu die `firmware.bin` und `littlefs.bin` von der [Release-Seite](https://github.com/SGiehler/paketkasten-modern-mainboard/releases) herunter. Anschließend können die Dateien über die entsprechenden Felder, wie im Screenshot zu sehen, hochgeladen werden. `firmware.bin` wird für das "Firmware"-Update und `littlefs.bin` für das "Filesystem"-Update verwendet.
 
 # Zugangskontrolle
 
