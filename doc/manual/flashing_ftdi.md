@@ -23,7 +23,7 @@ Diese Anleitung erklärt, wie Sie die Firmware und das LittleFS-Dateisystem mit 
 
     **Kommandozeile:**
     ```bash
-    esptool --chip esp32 --port <PORT> --baud 921600 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 80m --flash_size 4MB 0x0 complete-firmware.bin
+    esptool --chip esp32 --port <PORT> --baud 921600 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 80m --flash_size 4MB 0x0 complete-firmware-v1.2.0.bin
     ```
 
     Dieser Befehl flasht alle erforderlichen Komponenten an die richtigen Stellen im Flash-Speicher des ESP32.
