@@ -618,7 +618,7 @@
         document.getElementById('dutyCycleCloseValue').value = data.dutyCycleClose || 20;
         document.getElementById('melodySelect').value = data.selectedMelody || 'NOKIA_TUNE'; // Default to Nokia Tune
         document.getElementById('callbackUrl').value = data.callbackUrl || '';
-        document.getElementById('autolock').checked = data.autolock || true;
+        document.getElementById('autolock').checked = data.autolock || false;
 
         const ownerCodes = JSON.parse(data.ownerCodes || '[]');
         ownerCodes.forEach(code => createCodeEntry('owner', code.label, code.code));
