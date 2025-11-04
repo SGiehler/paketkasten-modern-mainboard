@@ -1,5 +1,8 @@
 # Flashing with FTDI Adapter
 
+> :warning:
+> Following this guide will wipe all data on the chip, including saved WiFi credentials and other settings. The device will be reset to its factory defaults, and the default WiFi password will be `G67zC4OiB`.
+
 This guide explains how to flash the firmware and the LittleFS filesystem to your device using an FTDI adapter and the `esptool` command-line utility.
 
 ## Prerequisites
@@ -18,7 +21,7 @@ This guide explains how to flash the firmware and the LittleFS filesystem to you
 2.  **Flash the Binaries:**
     Open your terminal or command prompt and navigate to the directory where you downloaded the release files. Run the following command, replacing `<PORT>` with the serial port of your FTDI adapter (e.g., `COM3` on Windows or `/dev/ttyUSB0` on Linux):
 
-    **Bash:**
+    **Commandline:**
     ```bash
     esptool --chip esp32 --port <PORT> --baud 921600 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 80m --flash_size 4MB 0x0 complete-firmware.bin 
     ```
