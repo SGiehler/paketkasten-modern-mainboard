@@ -1,31 +1,31 @@
-# Flashing with FTDI Adapter
+# Flashen mit FTDI-Adapter
 
 > :warning:
-> Following this guide will wipe all data on the chip, including saved WiFi credentials and other settings. The device will be reset to its factory defaults, and the default WiFi password will be `G67zC4OiB`.
+> Das Befolgen dieser Anleitung löscht alle Daten auf dem Chip, einschließlich gespeicherter WLAN-Anmeldeinformationen und anderer Einstellungen. Das Gerät wird auf die Werkseinstellungen zurückgesetzt und das Standard-WLAN-Passwort lautet `G67zC4OiB`.
 
-This guide explains how to flash the firmware and the LittleFS filesystem to your device using an FTDI adapter and the `esptool` command-line utility.
+Diese Anleitung erklärt, wie Sie die Firmware und das LittleFS-Dateisystem mit einem FTDI-Adapter und dem Kommandozeilen-Tool `esptool` auf Ihr Gerät flashen.
 
-## Prerequisites
+## Voraussetzungen
 
-1.  **esptool:** Ensure you have [esptool v5.1.0 or newer](https://github.com/espressif/esptool/releases/tag/v5.1.0) installed and accessible from your command line.
-2.  **FTDI Adapter:** A working FTDI adapter connected to your device's programming pins.
-3.  **Binaries:** Download the latest release assets from the [GitHub Releases](https://github.com/SGiehler/paketkasten-modern-mainboard/releases) page. You will need `complete-firmware.bin`.
+1.  **esptool:** Stellen Sie sicher, dass Sie [esptool v5.1.0 oder neuer](https://github.com/espressif/esptool/releases/tag/v5.1.0) installiert haben und es von Ihrer Kommandozeile aus zugänglich ist.
+2.  **FTDI-Adapter:** Ein funktionierender FTDI-Adapter, der mit den Programmier-Pins Ihres Geräts verbunden ist.
+3.  **Binärdateien:** Laden Sie die neuesten Release-Assets von der [GitHub-Releases-Seite](https://github.com/SGiehler/paketkasten-modern-mainboard/releases) herunter. Sie benötigen `complete-firmware.bin`.
 
-## Flashing Procedure
+## Flash-Vorgang
 
-1.  **Enter Bootloader Mode:**
-    *   Press and hold the **Boot** button on the board.
-    *   While holding the **Boot** button, press and release the **Reset** button.
-    *   Release the **Boot** button. The device is now in bootloader mode and ready to be flashed.
+1.  **Bootloader-Modus starten:**
+    *   Halten Sie die **Boot**-Taste auf der Platine gedrückt.
+    *   Während Sie die **Boot**-Taste gedrückt halten, drücken Sie kurz die **Reset**-Taste.
+    *   Lassen Sie die **Boot**-Taste los. Das Gerät befindet sich nun im Bootloader-Modus und ist bereit zum Flashen.
 
-2.  **Flash the Binaries:**
-    Open your terminal or command prompt and navigate to the directory where you downloaded the release files. Run the following command, replacing `<PORT>` with the serial port of your FTDI adapter (e.g., `COM3` on Windows or `/dev/ttyUSB0` on Linux):
+2.  **Binärdateien flashen:**
+    Öffnen Sie Ihr Terminal oder Ihre Eingabeaufforderung und navigieren Sie zu dem Verzeichnis, in das Sie die Release-Dateien heruntergeladen haben. Führen Sie den folgenden Befehl aus und ersetzen Sie `<PORT>` durch den seriellen Port Ihres FTDI-Adapters (z. B. `COM3` unter Windows oder `/dev/ttyUSB0` unter Linux):
 
-    **Commandline:**
+    **Kommandozeile:**
     ```bash
-    esptool --chip esp32 --port <PORT> --baud 921600 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 80m --flash_size 4MB 0x0 complete-firmware.bin 
+    esptool --chip esp32 --port <PORT> --baud 921600 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 80m --flash_size 4MB 0x0 complete-firmware.bin
     ```
 
-    This command will flash all the necessary components to their correct locations in the ESP32's flash memory.
+    Dieser Befehl flasht alle erforderlichen Komponenten an die richtigen Stellen im Flash-Speicher des ESP32.
 
-After the command completes successfully, `esptool` will automatically reset the device, and it will boot into the new firmware.
+Nachdem der Befehl erfolgreich abgeschlossen wurde, setzt `esptool` das Gerät automatisch zurück und es startet mit der neuen Firmware.
