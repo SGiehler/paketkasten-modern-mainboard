@@ -91,7 +91,7 @@ Eine detaillierte Anleitung zum Flashen des ESP32 Mikrocontrollers mittels FTDI-
 
 Seit der Firmware-Version 1.1.0 kann die Firmware auch bequem über die WebUI aktualisiert werden.
 
-![OTA Flash](ota_flash.png)
+![OTA Flash](ota-flash.png)
 
 Laden Sie dazu die `firmware.bin` und `littlefs.bin` von der [Release-Seite](https://github.com/SGiehler/paketkasten-modern-mainboard/releases) herunter. Anschließend können die Dateien über die entsprechenden Felder, wie im Screenshot zu sehen, hochgeladen werden. `firmware.bin` wird für das "Firmware"-Update und `littlefs.bin` für das "Filesystem"-Update verwendet.
 
