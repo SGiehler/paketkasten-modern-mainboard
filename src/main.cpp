@@ -46,7 +46,7 @@ const char* SOFTAP_PASSWORD = "G67zC4OiB";
 // Movement Settings
 const int PWM_FREQ = 50000;
 const int FULL_POWER_MS = 100;
-const int FULL_POWER_DUTY_CYCLE = 160;
+const int FULL_POWER_DUTY_CYCLE = 200;
 const int RAMP_DOWN_MS = 10;
 const int OPENING_DELAY_MS = 700;
 
