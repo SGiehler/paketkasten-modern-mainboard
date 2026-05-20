@@ -63,6 +63,8 @@ char lastUsed[50] = "unknown";
 unsigned long openStateEnterTime = 0;
 unsigned long preOpeningStateEnterTime = 0;
 unsigned long motorStartTime = 0;
+unsigned long lockedStateEnterTime = 0;
+bool wiegandAttached = true;
 volatile bool shouldRestart = false;
 std::vector<String> mqttMessageQueue;
 
@@ -231,6 +233,13 @@ void appTask(void* param) {
       }
     }
 
+    // Delayed Wiegand attachment to prevent motor braking noise from causing false scans
+    if (currentState == LOCKED && !wiegandAttached && (millis() - lockedStateEnterTime > 500)) {
+      wiegand.attach();
+      wiegandAttached = true;
+      Serial.println("Wiegand reader re-attached after motor noise cooldown");
+    }
+ 
     if (shouldRestart) {
       delay(100);
       ESP.restart();
@@ -321,6 +330,7 @@ void requestParcelOpening(const char* requester) {
     triggerCallback("parcel");
     Serial.println("Request: OPEN_PARCEL. State -> PRE_OPENING_TO_PARCEL");
     wiegand.detach();
+    wiegandAttached = false;
     strncpy(lastUsed, requester, sizeof(lastUsed) - 1);
     startMelodyPlayback(config.selectedMelody);
     preOpeningStateEnterTime = millis();
@@ -334,6 +344,7 @@ void requestMailOpening(const char* requester) {
     triggerCallback("mail");
     Serial.println("Request: OPEN_MAIL. State -> PRE_OPENING_TO_MAIL");
     wiegand.detach();
+    wiegandAttached = false;
     strncpy(lastUsed, requester, sizeof(lastUsed) - 1);
     startMelodyPlayback(config.selectedMelody);
     preOpeningStateEnterTime = millis();
@@ -341,9 +352,6 @@ void requestMailOpening(const char* requester) {
   }
 }
 
-void openSequenceDone() {
-  wiegand.attach();
-}
 
 void setupMotor() {
   pinMode(MOTOR_PIN_1, OUTPUT);
@@ -377,15 +385,13 @@ void setupSwitches() {
 
 void setupWiegand() {
   // Create a dedicated FreeRTOS task for Wiegand processing
-  // Pinned to Core 1 (APP_CPU), wakes immediately on ISR notification
+  // Pinned to Core 1 (APP_CPU), polls every 10ms
   xTaskCreatePinnedToCore(
     [](void* arg) {
       wiegand.begin(WIEGAND_D0_PIN, WIEGAND_D1_PIN);
       for (;;) {
-        // Sleep until ISR wakes us via vTaskNotifyGiveFromISR
-        // This replaces the old 10ms polling delay — we wake within microseconds
-        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
         loopWiegand();
+        vTaskDelay(pdMS_TO_TICKS(10));
       }
     },
     "WiegandTask",
@@ -622,7 +628,6 @@ void loopMotor() {
       interrupts();
       break;
     case LOCKED:
-      openSequenceDone(); // No break on purpose
     case PARCEL_OPEN:
     case MAIL_OPEN:
     case MOTOR_ERROR:
@@ -683,6 +688,8 @@ void loopSwitches() {
     case LOCKING:
       if (closedSwitch.pressed()) {
         currentState = LOCKED;
+        lockedStateEnterTime = millis();
+        wiegandAttached = false;
       }
       break;
     default:

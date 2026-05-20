@@ -14,9 +14,6 @@ public:
     uint32_t getCode();
     uint8_t getBitCount();
 
-    // Task handle for ISR-to-task notification (set by the FreeRTOS task)
-    volatile TaskHandle_t _taskHandle;
-
 private:
     static void IRAM_ATTR data0ISR();
     static void IRAM_ATTR data1ISR();
@@ -31,11 +28,13 @@ private:
     volatile uint32_t _code;
     
     volatile bool _isReading;
-    volatile unsigned long _lastWakeMicros;
+    volatile unsigned long _lastBitMicros;
 
     uint32_t _lastCode;
     uint8_t _lastBitCount;
     bool _available;
+
+    portMUX_TYPE _wiegandMux;
 };
 
 #endif
