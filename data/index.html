@@ -340,6 +340,10 @@
         <div class="value" id="scannedId">-</div>
       </div>
       <div class="diagnostic-item">
+        <div class="label">Delivery Mode</div>
+        <div class="value"><span id="deliveryBlocked" class="status-indicator status-off"></span><span id="deliveryBlockedText">-</span></div>
+      </div>
+      <div class="diagnostic-item">
         <div class="label">Versions</div>
         <div class="value">FW: <span id="firmwareVersion">-</span></div>
         <div class="value">FS: <span id="uiVersion">-</span></div>
@@ -361,6 +365,34 @@
       </div>
 
     </div>
+  </div>
+
+  <div class="box">
+    <h2>One-Time Codes</h2>
+    <table id="oneTimeCodesTable" style="width: 100%; border-collapse: collapse; margin-bottom: 15px; text-align: left;">
+      <thead>
+        <tr style="border-bottom: 2px solid var(--light-border);">
+          <th style="padding: 10px 5px;">Label</th>
+          <th style="padding: 10px 5px;">Code</th>
+          <th style="padding: 10px 5px;">Status</th>
+          <th style="padding: 10px 5px; text-align: right;">Action</th>
+        </tr>
+      </thead>
+      <tbody id="oneTimeCodesList">
+        <!-- Populated dynamically -->
+      </tbody>
+    </table>
+    
+    <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+      <input type="text" id="newOtcLabel" placeholder="Label (e.g. DHL)" style="margin-bottom: 0; flex: 2;" />
+      <input type="text" id="newOtcCode" placeholder="Code (e.g. 1A2B3C)" style="margin-bottom: 0; flex: 2;" />
+      <button type="button" class="btn btn-primary" onclick="generateRandomOtc()" style="margin-top: 0; flex: 1; padding: 12px 10px;">Gen Code</button>
+    </div>
+    <button type="button" class="btn btn-primary icon-btn" onclick="addOneTimeCode()">
+        <span class="icon">➕</span>
+        <span class="separator"></span>
+        <span class="text">Add One-Time Code</span>
+    </button>
   </div>
 
   <form class="box" action="/save" method="post">
@@ -443,6 +475,15 @@
       </label>
     </div>
 
+    <h2>Security Settings</h2>
+    <div class="setting-container">
+      <label for="oneTimeOpening" style="margin-bottom: 0;">One-Time Opening (Restricts subsequent deliveries until owner opens)</label>
+      <label class="switch">
+        <input type="checkbox" id="oneTimeOpening" name="oneTimeOpening">
+        <span class="slider round"></span>
+      </label>
+    </div>
+
     <div class="divider"></div>
 
     <button type="submit" class="btn btn-primary icon-btn">
@@ -465,6 +506,8 @@
 </div>
 
 <script>
+  let currentOneTimeCodes = [];
+
   function openMailbox(type) {
     fetch('/open', {
       method: 'POST',
@@ -493,6 +536,20 @@
         updateSwitchStatus('closedSwitch', data.closed_switch);
         updateSwitchStatus('parcelSwitch', data.parcel_switch);
         updateSwitchStatus('mailSwitch', data.mail_switch);
+
+        const dbElement = document.getElementById('deliveryBlocked');
+        const dbText = document.getElementById('deliveryBlockedText');
+        if (dbElement && dbText) {
+          if (data.delivery_blocked) {
+            dbElement.classList.remove('status-off');
+            dbElement.classList.add('status-on');
+            dbText.textContent = 'Blocked';
+          } else {
+            dbElement.classList.remove('status-on');
+            dbElement.classList.add('status-off');
+            dbText.textContent = 'Ready';
+          }
+        }
       })
       .catch(error => console.error('Error fetching diagnostics:', error));
   }
@@ -619,14 +676,113 @@
         document.getElementById('melodySelect').value = data.selectedMelody || 'NOKIA_TUNE'; // Default to Nokia Tune
         document.getElementById('callbackUrl').value = data.callbackUrl || '';
         document.getElementById('autolock').checked = data.autolock || false;
+        document.getElementById('oneTimeOpening').checked = data.oneTimeOpening || false;
 
         const ownerCodes = JSON.parse(data.ownerCodes || '[]');
         ownerCodes.forEach(code => createCodeEntry('owner', code.label, code.code));
 
         const deliveryCodes = JSON.parse(data.deliveryCodes || '[]');
         deliveryCodes.forEach(code => createCodeEntry('delivery', code.label, code.code));
+
+        const otcList = JSON.parse(data.oneTimeCodes || '[]');
+        renderOneTimeCodes(otcList);
       })
       .catch(error => console.error('Error fetching config:', error));
+  }
+
+  function renderOneTimeCodes(otcList) {
+    currentOneTimeCodes = otcList;
+    const tbody = document.getElementById('oneTimeCodesList');
+    tbody.innerHTML = '';
+    if (otcList.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 10px; color: var(--off-color);">No one-time codes configured</td></tr>`;
+      return;
+    }
+    otcList.forEach((otc, index) => {
+      const row = document.createElement('tr');
+      row.style.borderBottom = '1px solid var(--light-border)';
+      const statusText = otc.redeemed ? 'Redeemed' : 'Active';
+      const statusClass = otc.redeemed ? 'status-off' : 'status-on';
+      row.innerHTML = `
+        <td style="padding: 10px 5px;">${escapeHtml(otc.label)}</td>
+        <td style="padding: 10px 5px; font-family: monospace;">${escapeHtml(otc.code)}</td>
+        <td style="padding: 10px 5px;"><span class="status-indicator ${statusClass}"></span>${statusText}</td>
+        <td style="padding: 10px 5px; text-align: right;">
+          <button type="button" class="remove-btn" style="display: inline-flex;" onclick="deleteOneTimeCode(${index})">&times;</button>
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+  }
+
+  function escapeHtml(text) {
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function generateRandomOtc() {
+    const chars = '0123456789ABCDEF';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+      code += chars[Math.floor(Math.random() * 16)];
+    }
+    document.getElementById('newOtcCode').value = code;
+  }
+
+  function addOneTimeCode() {
+    const labelInput = document.getElementById('newOtcLabel');
+    const codeInput = document.getElementById('newOtcCode');
+    const label = labelInput.value.trim();
+    const code = codeInput.value.trim().toUpperCase();
+    
+    if (!label || !code) {
+      alert('Please enter both label and code');
+      return;
+    }
+    
+    // Check for duplicate code
+    if (currentOneTimeCodes.some(otc => otc.code === code)) {
+      alert('Code already exists');
+      return;
+    }
+    
+    currentOneTimeCodes.push({ label: label, code: code, redeemed: false });
+    saveOneTimeCodes(currentOneTimeCodes);
+    
+    labelInput.value = '';
+    codeInput.value = '';
+  }
+
+  function deleteOneTimeCode(index) {
+    if (confirm('Delete this one-time code?')) {
+      currentOneTimeCodes.splice(index, 1);
+      saveOneTimeCodes(currentOneTimeCodes);
+    }
+  }
+
+  function saveOneTimeCodes(otcList) {
+    fetch('/save-onetime-codes', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: 'oneTimeCodes=' + encodeURIComponent(JSON.stringify(otcList))
+    })
+    .then(response => {
+      if (response.ok) {
+        renderOneTimeCodes(otcList);
+      } else {
+        alert('Failed to save one-time codes');
+      }
+    })
+    .catch(error => {
+      console.error('Error saving one-time codes:', error);
+      alert('Error saving one-time codes');
+    });
   }
 
   document.getElementById('dutyCycleOpen').addEventListener('input', function(e) {

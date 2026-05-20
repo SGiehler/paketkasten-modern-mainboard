@@ -17,6 +17,8 @@ struct Config {
   String selectedMelody;
   String callbackUrl;
   bool autolock;
+  String oneTimeCodes;
+  bool oneTimeOpening;
 };
 
 const char* const PREFERENCES_NAMESPACE = "mailbox";
@@ -33,5 +35,8 @@ const char* const DUTY_CYCLE_CLOSE_KEY = "dutyCycleClose";
 const char* const SELECTED_MELODY_KEY = "selectedMelody";
 const char* const CALLBACK_URL_KEY = "callbackUrl";
 const char* const AUTOLOCK_KEY = "autolock";
+const char* const ONE_TIME_CODES_KEY = "oneTimeCodes";
+const char* const ONE_TIME_OPENING_KEY = "oneTimeOpen";
+const char* const DELIVERY_BLOCKED_KEY = "delBlocked";
 
 #endif

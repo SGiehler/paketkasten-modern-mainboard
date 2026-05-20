@@ -66,6 +66,7 @@ unsigned long motorStartTime = 0;
 unsigned long lockedStateEnterTime = 0;
 bool wiegandAttached = true;
 volatile bool shouldRestart = false;
+volatile bool deliveryBlocked = false;
 std::vector<String> mqttMessageQueue;
 
 // Mutex to protect ONLY cross-core shared data (Core 1 <-> Core 0)
@@ -106,6 +107,8 @@ String getMailboxStateString();
 void receivedWiegandCode(char* code, uint8_t bits);
 void loadConfiguration();
 void saveConfiguration();
+void resetDeliveryBlockIfNeeded(const char* requester);
+bool checkAndRedeemOneTimeCode(const char* scannedCode, String& labelOut);
 void publishState();
 void handleMqttQueue();
 void mqttCallback(char* topic, byte* payload, unsigned int length);
@@ -277,6 +280,9 @@ void loadConfiguration() {
   config.selectedMelody = preferences.getString(SELECTED_MELODY_KEY, "NOKIA_TUNE");
   config.callbackUrl = preferences.getString(CALLBACK_URL_KEY, "");
   config.autolock = preferences.getBool(AUTOLOCK_KEY, true);
+  config.oneTimeCodes = preferences.getString(ONE_TIME_CODES_KEY, "[]");
+  config.oneTimeOpening = preferences.getBool(ONE_TIME_OPENING_KEY, false);
+  deliveryBlocked = preferences.getBool(DELIVERY_BLOCKED_KEY, false);
   preferences.end();
 }
 
@@ -295,6 +301,9 @@ void saveConfiguration() {
   preferences.putString(SELECTED_MELODY_KEY, config.selectedMelody);
   preferences.putString(CALLBACK_URL_KEY, config.callbackUrl);
   preferences.putBool(AUTOLOCK_KEY, config.autolock);
+  preferences.putString(ONE_TIME_CODES_KEY, config.oneTimeCodes);
+  preferences.putBool(ONE_TIME_OPENING_KEY, config.oneTimeOpening);
+  preferences.putBool(DELIVERY_BLOCKED_KEY, deliveryBlocked);
   preferences.end();
 }
 
@@ -303,6 +312,57 @@ void factoryReset() {
   preferences.clear();
   preferences.end();
   Serial.println("All preferences cleared.");
+}
+
+void resetDeliveryBlockIfNeeded(const char* requester) {
+  if (config.oneTimeOpening && deliveryBlocked) {
+    deliveryBlocked = false;
+    preferences.begin(PREFERENCES_NAMESPACE, false);
+    preferences.putBool(DELIVERY_BLOCKED_KEY, false);
+    preferences.end();
+    Serial.printf("Delivery block reset by owner (%s)\n", requester);
+  }
+}
+
+bool checkAndRedeemOneTimeCode(const char* scannedCode, String& labelOut) {
+  if (config.oneTimeCodes.length() == 0 || config.oneTimeCodes == "[]") {
+    return false;
+  }
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, config.oneTimeCodes);
+  if (error) {
+    Serial.println("Error parsing one-time codes JSON");
+    return false;
+  }
+  JsonArray array = doc.as<JsonArray>();
+  bool found = false;
+  for (JsonObject obj : array) {
+    const char* code = obj["code"];
+    bool redeemed = obj["redeemed"] | false;
+    if (code && strcmp(code, scannedCode) == 0) {
+      if (redeemed) {
+        Serial.println("One-time code matched but already redeemed.");
+        return false;
+      }
+      labelOut = obj["label"] | "One-Time Code";
+      obj["redeemed"] = true;
+      obj["redeemedAt"] = millis(); // Store redemption timestamp
+      found = true;
+      break;
+    }
+  }
+  if (found) {
+    String updatedJson;
+    serializeJson(doc, updatedJson);
+    config.oneTimeCodes = updatedJson;
+    
+    preferences.begin(PREFERENCES_NAMESPACE, false);
+    preferences.putString(ONE_TIME_CODES_KEY, config.oneTimeCodes);
+    preferences.end();
+    Serial.printf("One-time code redeemed: %s\n", labelOut.c_str());
+    return true;
+  }
+  return false;
 }
 
 void triggerCallback(const char* compartment) {
@@ -327,6 +387,9 @@ void requestParcelOpening(const char* requester) {
   // Called from Wiegand task (Core 1), MQTT callback (Core 0), and web handler.
   // Mutex is already held when called from appTask; use tryTake for cross-core callers.
   if (currentState == LOCKED) {
+    if (strcmp(requester, "webinterface") == 0 || strcmp(requester, "mqtt") == 0) {
+      resetDeliveryBlockIfNeeded(requester);
+    }
     triggerCallback("parcel");
     Serial.println("Request: OPEN_PARCEL. State -> PRE_OPENING_TO_PARCEL");
     wiegand.detach();
@@ -341,6 +404,9 @@ void requestParcelOpening(const char* requester) {
 void requestMailOpening(const char* requester) {
   // Called from Wiegand task (Core 1), MQTT callback (Core 0), and web handler.
   if (currentState == LOCKED) {
+    if (strcmp(requester, "webinterface") == 0 || strcmp(requester, "mqtt") == 0) {
+      resetDeliveryBlockIfNeeded(requester);
+    }
     triggerCallback("mail");
     Serial.println("Request: OPEN_MAIL. State -> PRE_OPENING_TO_MAIL");
     wiegand.detach();
@@ -464,6 +530,8 @@ void setupWebServer() {
     doc["selectedMelody"] = config.selectedMelody;
     doc["callbackUrl"] = config.callbackUrl;
     doc["autolock"] = config.autolock;
+    doc["oneTimeCodes"] = config.oneTimeCodes;
+    doc["oneTimeOpening"] = config.oneTimeOpening;
     serializeJson(doc, jsonConfig);
     request->send(200, "application/json", jsonConfig);
   });
@@ -487,6 +555,7 @@ void setupWebServer() {
     config.selectedMelody = request->arg("selectedMelody");
     config.callbackUrl = request->arg("callbackUrl");
     config.autolock = request->hasArg("autolock");
+    config.oneTimeOpening = request->hasArg("oneTimeOpening");
     saveConfiguration();
     delay(500);
     Serial.println("Configuration saved. Restarting...");
@@ -513,8 +582,24 @@ void setupWebServer() {
     doc["closed_switch"] = digitalRead(CLOSED_SWITCH_PIN) == (INVERT_SWITCH_STATE ? HIGH : LOW);
     doc["parcel_switch"] = digitalRead(PARCEL_SWITCH_PIN) == (INVERT_SWITCH_STATE ? HIGH : LOW);
     doc["mail_switch"] = digitalRead(MAIL_SWITCH_PIN) == (INVERT_SWITCH_STATE ? HIGH : LOW);
+    doc["delivery_blocked"] = deliveryBlocked;
     serializeJson(doc, jsonResponse);
     request->send(200, "application/json", jsonResponse);
+  });
+
+  server.on("/save-onetime-codes", HTTP_POST, [](AsyncWebServerRequest *request){
+    if (request->hasParam("oneTimeCodes", true)) {
+      config.oneTimeCodes = request->getParam("oneTimeCodes", true)->value();
+      
+      preferences.begin(PREFERENCES_NAMESPACE, false);
+      preferences.putString(ONE_TIME_CODES_KEY, config.oneTimeCodes);
+      preferences.end();
+      
+      Serial.println("One-time codes saved dynamically.");
+      request->send(200, "text/plain", "OK");
+    } else {
+      request->send(400, "text/plain", "Bad Request");
+    }
   });
 
   server.on("/playMelody", HTTP_POST, [](AsyncWebServerRequest *request){
@@ -723,9 +808,48 @@ void loopWiegand() {
       AccessType result = AccessControl::evaluate(codeStr, config.ownerCodes.c_str(), config.deliveryCodes.c_str(), &labelOut);
       
       if (result == AccessType::OPEN_MAIL) {
+        if (config.oneTimeOpening && deliveryBlocked) {
+          deliveryBlocked = false;
+          preferences.begin(PREFERENCES_NAMESPACE, false);
+          preferences.putBool(DELIVERY_BLOCKED_KEY, false);
+          preferences.end();
+          Serial.printf("Delivery block reset by owner card scan (%s)\n", labelOut.c_str());
+        }
         requestMailOpening(labelOut.c_str());
         return;
-      } else if (result == AccessType::OPEN_PARCEL) {
+      }
+      
+      // Check one-time codes next
+      String otcLabel;
+      if (checkAndRedeemOneTimeCode(codeStr, otcLabel)) {
+        if (config.oneTimeOpening && deliveryBlocked) {
+          Serial.println("Access denied: One-time opening active and delivery blocked (one-time code).");
+          return;
+        }
+        if (config.oneTimeOpening) {
+          deliveryBlocked = true;
+          preferences.begin(PREFERENCES_NAMESPACE, false);
+          preferences.putBool(DELIVERY_BLOCKED_KEY, true);
+          preferences.end();
+          Serial.println("One-time opening delivery block activated (one-time code used).");
+        }
+        requestParcelOpening(otcLabel.c_str());
+        return;
+      }
+      
+      // Check regular delivery codes
+      if (result == AccessType::OPEN_PARCEL) {
+        if (config.oneTimeOpening && deliveryBlocked) {
+          Serial.println("Access denied: One-time opening active and delivery blocked (delivery code).");
+          return;
+        }
+        if (config.oneTimeOpening) {
+          deliveryBlocked = true;
+          preferences.begin(PREFERENCES_NAMESPACE, false);
+          preferences.putBool(DELIVERY_BLOCKED_KEY, true);
+          preferences.end();
+          Serial.println("One-time opening delivery block activated (delivery code used).");
+        }
         requestParcelOpening(labelOut.c_str());
         return;
       }
