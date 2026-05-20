@@ -14,10 +14,12 @@ public:
     uint32_t getCode();
     uint8_t getBitCount();
 
+    // Task handle for ISR-to-task notification (set by the FreeRTOS task)
+    volatile TaskHandle_t _taskHandle;
+
 private:
     static void IRAM_ATTR data0ISR();
     static void IRAM_ATTR data1ISR();
-    void handleData(uint8_t data);
     void processCode();
 
     static Wiegand* instance;
@@ -27,7 +29,9 @@ private:
 
     volatile uint8_t _bitCount;
     volatile uint32_t _code;
-    volatile unsigned long _lastBitTime;
+    
+    volatile bool _isReading;
+    volatile unsigned long _lastWakeMicros;
 
     uint32_t _lastCode;
     uint8_t _lastBitCount;

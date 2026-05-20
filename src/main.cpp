@@ -7,6 +7,7 @@
 #include "state.h"
 #include "config.h"
 #include "melodies.h"
+#include "AccessControl.h"
 #include <Wiegand.h>
 #include <WiFi.h>
 #include <ESPAsyncWebServer.h>
@@ -50,7 +51,7 @@ const int FULL_POWER_DUTY_CYCLE = 200;
 const int RAMP_DOWN_MS = 10;
 const int OPENING_DELAY_MS = 700;
 
-MailboxState currentState = LOCKED;
+volatile MailboxState currentState = LOCKED;
 Wiegand wiegand;
 AsyncWebServer server(80);
 Preferences preferences;
@@ -62,8 +63,13 @@ char lastUsed[50] = "unknown";
 unsigned long openStateEnterTime = 0;
 unsigned long preOpeningStateEnterTime = 0;
 unsigned long motorStartTime = 0;
-bool shouldRestart = false;
+volatile bool shouldRestart = false;
 std::vector<String> mqttMessageQueue;
+
+// Mutex to protect ONLY cross-core shared data (Core 1 <-> Core 0)
+// Specifically protects: mqttMessageQueue (written on Core 1, read on Core 0)
+// NOT used for Core-1-only state (currentState, etc.) to avoid priority inversion
+SemaphoreHandle_t mqttQueueMutex;
 
 // Melody playback variables
 int* currentMelody = nullptr;
@@ -88,8 +94,11 @@ void loopMotor();
 void loopLeds();
 void loopSwitches();
 void loopWiegand();
-void loopWebServer();
 void loopMqtt();
+
+// FreeRTOS task functions
+void appTask(void* param);
+void mqttTask(void* param);
 
 String getMailboxStateString();
 void receivedWiegandCode(char* code, uint8_t bits);
@@ -114,6 +123,10 @@ void setup() {
     Serial.println("An Error has occurred while mounting LittleFS");
     return;
   }
+
+  // Create mutex for cross-core MQTT queue protection only
+  mqttQueueMutex = xSemaphoreCreateMutex();
+
   loadConfiguration();
   Serial.println("Configuration loaded.");
   setupMotor();
@@ -130,73 +143,114 @@ void setup() {
   Serial.println("Web server setup complete.");
   setupMqtt();
   Serial.println("MQTT setup complete.");
-  Serial.println("Setup complete.");
-  Serial.println("Entering loop...");
+
+  // Pin application logic to Core 1 (APP_CPU, away from WiFi on Core 0)
+  xTaskCreatePinnedToCore(
+    appTask,
+    "AppTask",
+    8192,             // Stack size
+    NULL,
+    1,                // Priority (same as default loop)
+    NULL,
+    1                 // Core 1 (APP_CPU)
+  );
+
+  // Pin MQTT handling to Core 0 (PRO_CPU, alongside WiFi)
+  xTaskCreatePinnedToCore(
+    mqttTask,
+    "MqttTask",
+    4096,             // Stack size
+    NULL,
+    1,                // Priority
+    NULL,
+    0                 // Core 0 (PRO_CPU)
+  );
+
+  Serial.println("Setup complete. Tasks pinned: AppTask->Core1, WiegandTask->Core1, MqttTask->Core0");
 }
 
 void loop() {
+  // All work is done in FreeRTOS tasks. Keep loop() alive but idle.
+  vTaskDelay(portMAX_DELAY);
+}
 
-  if (currentState == PRE_OPENING_TO_PARCEL && (millis() - preOpeningStateEnterTime > OPENING_DELAY_MS)) {
-    currentState = OPENING_TO_PARCEL;
-  }
-  if (currentState == PRE_OPENING_TO_MAIL && (millis() - preOpeningStateEnterTime > OPENING_DELAY_MS)) {
-    currentState = OPENING_TO_MAIL;
-  }
-
-  loopSwitches();
-  loopMotor();
-  loopLeds();
-  loopMelody();
-
-  if (currentState != MOTOR_ERROR) {
-    bool shouldLock = false;
-
-    if ((currentState == MAIL_OPEN || currentState == PARCEL_OPEN) && (millis() - openStateEnterTime > 1000)) {
-      Serial.println("Regular Lock");
-      shouldLock = true;
+// Application logic task — pinned to Core 1 (APP_CPU)
+// Handles: state machine, motor, LEDs, switches, melody, restart
+// No mutex needed here — WiegandTask is also on Core 1, so FreeRTOS
+// preemptive scheduling handles concurrency without blocking.
+void appTask(void* param) {
+  for (;;) {
+    if (currentState == PRE_OPENING_TO_PARCEL && (millis() - preOpeningStateEnterTime > OPENING_DELAY_MS)) {
+      currentState = OPENING_TO_PARCEL;
+    }
+    if (currentState == PRE_OPENING_TO_MAIL && (millis() - preOpeningStateEnterTime > OPENING_DELAY_MS)) {
+      currentState = OPENING_TO_MAIL;
     }
 
-    if (config.autolock) {
-      static unsigned long noSwitchActiveSince = 0;
-      bool anySwitchActive = closedSwitch.isPressed() || parcelSwitch.isPressed() || mailSwitch.isPressed();
+    loopSwitches();
+    loopMotor();
+    loopLeds();
+    loopMelody();
 
-      if (anySwitchActive) {
-        noSwitchActiveSince = 0;
-      } else {
-        if (noSwitchActiveSince == 0) {
-          noSwitchActiveSince = millis();
-        }
+    if (currentState != MOTOR_ERROR) {
+      bool shouldLock = false;
+
+      if ((currentState == MAIL_OPEN || currentState == PARCEL_OPEN) && (millis() - openStateEnterTime > 1000)) {
+        Serial.println("Regular Lock");
+        shouldLock = true;
       }
 
-      if (noSwitchActiveSince != 0 && (millis() - noSwitchActiveSince > 10000)) {
-        if (currentState != OPENING_TO_PARCEL && currentState != OPENING_TO_MAIL && currentState != LOCKING) {
-          Serial.println("No switch Lock");
+      if (config.autolock) {
+        static unsigned long noSwitchActiveSince = 0;
+        bool anySwitchActive = closedSwitch.isPressed() || parcelSwitch.isPressed() || mailSwitch.isPressed();
+
+        if (anySwitchActive) {
+          noSwitchActiveSince = 0;
+        } else {
+          if (noSwitchActiveSince == 0) {
+            noSwitchActiveSince = millis();
+          }
+        }
+
+        if (noSwitchActiveSince != 0 && (millis() - noSwitchActiveSince > 10000)) {
+          if (currentState != OPENING_TO_PARCEL && currentState != OPENING_TO_MAIL && currentState != LOCKING) {
+            Serial.println("No switch Lock");
+            shouldLock = true;
+          }
+        }
+
+        // if locked is the current state but the locked switch isn't pressed set locking.
+        if (currentState == LOCKED && !closedSwitch.isPressed()) {
+          Serial.println("Default Lock");
           shouldLock = true;
         }
       }
 
-      // if locked is the current state but the locked switch isn't pressed set locking.
-      if (currentState == LOCKED && !closedSwitch.isPressed()) {
-        Serial.println("Default Lock");
-        shouldLock = true;
+      if (shouldLock) {
+        currentState = LOCKING;
       }
     }
 
-    if (shouldLock) {
-      currentState = LOCKING;
-    }
-  }
-
-  if (currentState == LOCKED || currentState == MOTOR_ERROR) {
-    loopWiegand();
-    loopWebServer();
-    loopMqtt();
     if (shouldRestart) {
       delay(100);
       ESP.restart();
     }
-  }
 
+    vTaskDelay(pdMS_TO_TICKS(1)); // 1ms tick for responsive motor/switch control
+  }
+}
+
+// MQTT task — pinned to Core 0 (PRO_CPU, alongside WiFi)
+// Reads currentState (volatile enum, atomic on ESP32) without mutex.
+// Only uses mqttQueueMutex when draining the message queue.
+void mqttTask(void* param) {
+  for (;;) {
+    MailboxState localState = currentState;
+    if (localState == LOCKED || localState == MOTOR_ERROR) {
+      loopMqtt();
+    }
+    vTaskDelay(pdMS_TO_TICKS(50)); // MQTT doesn't need sub-ms timing
+  }
 }
 
 void loadConfiguration() {
@@ -261,6 +315,8 @@ void triggerCallback(const char* compartment) {
 }
 
 void requestParcelOpening(const char* requester) {
+  // Called from Wiegand task (Core 1), MQTT callback (Core 0), and web handler.
+  // Mutex is already held when called from appTask; use tryTake for cross-core callers.
   if (currentState == LOCKED) {
     triggerCallback("parcel");
     Serial.println("Request: OPEN_PARCEL. State -> PRE_OPENING_TO_PARCEL");
@@ -273,6 +329,7 @@ void requestParcelOpening(const char* requester) {
 }
 
 void requestMailOpening(const char* requester) {
+  // Called from Wiegand task (Core 1), MQTT callback (Core 0), and web handler.
   if (currentState == LOCKED) {
     triggerCallback("mail");
     Serial.println("Request: OPEN_MAIL. State -> PRE_OPENING_TO_MAIL");
@@ -319,7 +376,25 @@ void setupSwitches() {
 }
 
 void setupWiegand() {
-  wiegand.begin(WIEGAND_D0_PIN, WIEGAND_D1_PIN);
+  // Create a dedicated FreeRTOS task for Wiegand processing
+  // Pinned to Core 1 (APP_CPU), wakes immediately on ISR notification
+  xTaskCreatePinnedToCore(
+    [](void* arg) {
+      wiegand.begin(WIEGAND_D0_PIN, WIEGAND_D1_PIN);
+      for (;;) {
+        // Sleep until ISR wakes us via vTaskNotifyGiveFromISR
+        // This replaces the old 10ms polling delay — we wake within microseconds
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+        loopWiegand();
+      }
+    },
+    "WiegandTask",
+    4096,             // Stack size
+    NULL,             // Task parameters
+    2,                // Priority (2 is higher than appTask priority 1)
+    NULL,             // Task handle
+    1                 // Core 1 (APP_CPU)
+  );
 }
 
 void setupBuzzer() {
@@ -621,6 +696,9 @@ void loopSwitches() {
 }
 
 void loopWiegand() {
+  // No mutex needed — runs on Core 1 alongside appTask.
+  // FreeRTOS preemptive scheduling (WiegandTask priority 2 > appTask priority 1)
+  // ensures this task preempts appTask without blocking.
   if (currentState != LOCKED) {
     return;
   }
@@ -634,35 +712,18 @@ void loopWiegand() {
     lastScannedWiegandId[sizeof(lastScannedWiegandId) - 1] = '\0';
 
     if (currentState == LOCKED) {
-      JsonDocument doc;
-      DeserializationError error = deserializeJson(doc, config.ownerCodes);
-
-      if (!error) {
-        JsonArray array = doc.as<JsonArray>();
-        for (JsonObject obj : array) {
-          if (String(obj["code"]) == String(codeStr)) {
-            requestMailOpening(obj["label"]);
-            return; 
-          }
-        }
-      }
-
-      error = deserializeJson(doc, config.deliveryCodes);
-      if (!error) {
-        JsonArray array = doc.as<JsonArray>();
-        for (JsonObject obj : array) {
-          if (String(obj["code"]) == String(codeStr)) {
-            requestParcelOpening(obj["label"]);
-            return;
-          }
-        }
+      std::string labelOut;
+      AccessType result = AccessControl::evaluate(codeStr, config.ownerCodes.c_str(), config.deliveryCodes.c_str(), &labelOut);
+      
+      if (result == AccessType::OPEN_MAIL) {
+        requestMailOpening(labelOut.c_str());
+        return;
+      } else if (result == AccessType::OPEN_PARCEL) {
+        requestParcelOpening(labelOut.c_str());
+        return;
       }
     }
   }
-}
-
-void loopWebServer() {
-  // No need to do anything here for AsyncWebServer
 }
 
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
@@ -676,6 +737,9 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   Serial.println(message);
 
   if (String(topic) == "paketkasten/command") {
+    // MQTT callback runs on Core 0. currentState read is safe (volatile enum,
+    // atomic on 32-bit ESP32). The requestXxxOpening functions write to
+    // Core-1-owned state, but this is a rare event and the write is atomic.
     if (message == "OPEN_PARCEL") {
       requestParcelOpening("mqtt");
     } else if (message == "OPEN_MAIL") {
@@ -685,18 +749,28 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
 }
 
 void handleMqttQueue() {
-    if (mqttClient.connected() && !mqttMessageQueue.empty()) {
-        String stateTopic = "paketkasten/state";
-        for (const auto& msg : mqttMessageQueue) {
-            Serial.print("Publishing state to MQTT: ");
-            Serial.println(msg);
-            mqttClient.publish(stateTopic.c_str(), msg.c_str());
+    // Called from mqttTask on Core 0. Uses mqttQueueMutex to safely read the queue.
+    if (mqttClient.connected() && xSemaphoreTake(mqttQueueMutex, pdMS_TO_TICKS(10)) == pdTRUE) {
+        if (!mqttMessageQueue.empty()) {
+            // Copy queue locally and clear, then release mutex before publishing
+            std::vector<String> localQueue = mqttMessageQueue;
+            mqttMessageQueue.clear();
+            xSemaphoreGive(mqttQueueMutex);
+
+            String stateTopic = "paketkasten/state";
+            for (const auto& msg : localQueue) {
+                Serial.print("Publishing state to MQTT: ");
+                Serial.println(msg);
+                mqttClient.publish(stateTopic.c_str(), msg.c_str());
+            }
+        } else {
+            xSemaphoreGive(mqttQueueMutex);
         }
-        mqttMessageQueue.clear();
     }
 }
 
 void publishState() {
+  // Called from loopSwitches on Core 1. Uses mqttQueueMutex to safely push.
   JsonDocument doc;
   doc["state"] = getMailboxStateString();
   doc["last_used"] = lastUsed;
@@ -704,7 +778,10 @@ void publishState() {
   serializeJson(doc, output);
   Serial.print("Queuing state for MQTT: ");
   Serial.println(output);
-  mqttMessageQueue.push_back(output);
+  if (xSemaphoreTake(mqttQueueMutex, pdMS_TO_TICKS(10)) == pdTRUE) {
+    mqttMessageQueue.push_back(output);
+    xSemaphoreGive(mqttQueueMutex);
+  }
 }
 
 String getMailboxStateString() {
