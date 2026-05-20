@@ -344,6 +344,13 @@ bool checkAndRedeemOneTimeCode(const char* scannedCode, String& labelOut) {
         Serial.println("One-time code matched but already redeemed.");
         return false;
       }
+      
+      // Found an active code! Now check if we are delivery blocked.
+      if (config.oneTimeOpening && deliveryBlocked) {
+        Serial.println("Access denied: One-time opening active and delivery blocked. Code NOT redeemed.");
+        return false; // Keep code active!
+      }
+      
       labelOut = obj["label"] | "One-Time Code";
       obj["redeemed"] = true;
       obj["redeemedAt"] = millis(); // Store redemption timestamp
@@ -822,10 +829,6 @@ void loopWiegand() {
       // Check one-time codes next
       String otcLabel;
       if (checkAndRedeemOneTimeCode(codeStr, otcLabel)) {
-        if (config.oneTimeOpening && deliveryBlocked) {
-          Serial.println("Access denied: One-time opening active and delivery blocked (one-time code).");
-          return;
-        }
         if (config.oneTimeOpening) {
           deliveryBlocked = true;
           preferences.begin(PREFERENCES_NAMESPACE, false);
