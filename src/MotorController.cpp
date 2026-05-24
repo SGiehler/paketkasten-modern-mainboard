@@ -13,8 +13,7 @@ MotorController::MotorController(int pin1, int pin2) :
 void MotorController::begin() {
     pinMode(_pin1, OUTPUT);
     pinMode(_pin2, OUTPUT);
-    analogWriteFrequency(_pin1, PWM_FREQ);
-    analogWriteFrequency(_pin2, PWM_FREQ);
+    analogWriteFrequency(PWM_FREQ);
     analogWrite(_pin1, 0);
     analogWrite(_pin2, 0);
 }
