@@ -28,7 +28,7 @@ void MqttManager::begin(void (*callback)(char* topic, byte* payload, unsigned in
 
         if (config.mqttUseTls) {
             Serial.println("MQTT: Using TLS (Secure connection)");
-            NetworkClientSecure* secureClient = new NetworkClientSecure();
+            WiFiClientSecure* secureClient = new WiFiClientSecure();
             if (config.mqttSkipCertVal) {
                 Serial.println("MQTT: Skipping certificate validation (Insecure)");
                 secureClient->setInsecure();
