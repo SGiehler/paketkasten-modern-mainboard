@@ -7,6 +7,11 @@ AccessType AccessControl::evaluate(const char* scannedCode, const char* ownerCod
         return AccessType::DENIED;
     }
 
+    // Convert scanned HEX code to its decimal representation
+    char scannedCodeDec[32] = "";
+    unsigned long val = strtoul(scannedCode, nullptr, 16);
+    snprintf(scannedCodeDec, sizeof(scannedCodeDec), "%lu", val);
+
     JsonDocument doc;
     
     // Check owner (mail) codes first
@@ -15,7 +20,7 @@ AccessType AccessControl::evaluate(const char* scannedCode, const char* ownerCod
         JsonArray array = doc.as<JsonArray>();
         for (JsonObject obj : array) {
             const char* objCode = obj["code"];
-            if (objCode && strcmp(objCode, scannedCode) == 0) {
+            if (objCode && (strcmp(objCode, scannedCode) == 0 || strcmp(objCode, scannedCodeDec) == 0)) {
                 if (labelOut) {
                     const char* label = obj["label"];
                     *labelOut = label ? label : "unknown";
@@ -33,7 +38,7 @@ AccessType AccessControl::evaluate(const char* scannedCode, const char* ownerCod
         JsonArray array = doc.as<JsonArray>();
         for (JsonObject obj : array) {
             const char* objCode = obj["code"];
-            if (objCode && strcmp(objCode, scannedCode) == 0) {
+            if (objCode && (strcmp(objCode, scannedCode) == 0 || strcmp(objCode, scannedCodeDec) == 0)) {
                 if (labelOut) {
                     const char* label = obj["label"];
                     *labelOut = label ? label : "unknown";

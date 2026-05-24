@@ -220,7 +220,15 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    margin-bottom: 5px;
+  }
+
+  .setting-explainer {
+    font-size: 0.85rem;
+    color: var(--off-color);
+    margin-top: 0;
     margin-bottom: 15px;
+    line-height: 1.4;
   }
 
   .switch {
@@ -385,7 +393,7 @@
     
     <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
       <input type="text" id="newOtcLabel" placeholder="Label (e.g. DHL)" style="margin-bottom: 0; flex: 2;" />
-      <input type="text" id="newOtcCode" placeholder="Code (e.g. 1A2B3C)" style="margin-bottom: 0; flex: 2;" />
+      <input type="text" id="newOtcCode" placeholder="Code (e.g. 123456)" style="margin-bottom: 0; flex: 2;" />
       <button type="button" class="btn btn-primary" onclick="generateRandomOtc()" style="margin-top: 0; flex: 1; padding: 12px 10px;">Gen Code</button>
     </div>
     <button type="button" class="btn btn-primary icon-btn" onclick="addOneTimeCode()">
@@ -451,22 +459,23 @@
     <input type="range" id="dutyCycleClose" name="dutyCycleClose" min="20" max="100">
 
     <h2>Melody</h2>
-    <label for="melodySelect">Select Melody:</label>
-    <select id="melodySelect" name="selectedMelody">
-      <option value="NOKIA_TUNE">Nokia Tune</option>
-      <option value="IMPERIAL_MARCH">Imperial March</option>
-      <option value="MARIO">Mario</option>
-      <option value="WINDOWS_XP_STARTUP">Windows XP Startup</option>
-      <option value="INTEL_INSIDE">Intel Inside</option>
-      <option value="TETRIS">Tetris</option>
-    </select>
-    <button type="button" class="btn btn-primary icon-btn" onclick="playSelectedMelody()">
-        <span class="icon">🎵</span>
-        <span class="separator"></span>
-        <span class="text">Play Melody</span>
-    </button>
+    <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+      <select id="melodySelect" name="selectedMelody" style="margin-bottom: 0; flex: 1;">
+        <option value="NOKIA_TUNE">Nokia Tune</option>
+        <option value="IMPERIAL_MARCH">Imperial March</option>
+        <option value="MARIO">Mario</option>
+        <option value="WINDOWS_XP_STARTUP">Windows XP Startup</option>
+        <option value="INTEL_INSIDE">Intel Inside</option>
+        <option value="TETRIS">Tetris</option>
+      </select>
+      <button type="button" class="btn btn-primary icon-btn" onclick="playSelectedMelody()" style="margin-top: 0; width: auto;">
+          <span class="icon">🎵</span>
+          <span class="separator"></span>
+          <span class="text">Play Melody</span>
+      </button>
+    </div>
 
-    <h2>Autolock</h2>
+    <h2>Settings</h2>
     <div class="setting-container">
       <label for="autolock" style="margin-bottom: 0;">Default Autolock</label>
       <label class="switch">
@@ -474,15 +483,16 @@
         <span class="slider round"></span>
       </label>
     </div>
+    <p class="setting-explainer">Automatically locks the mailbox after 10 seconds of inactivity or when the door is closed.</p>
 
-    <h2>Security Settings</h2>
     <div class="setting-container">
-      <label for="oneTimeOpening" style="margin-bottom: 0;">One-Time Opening (Restricts subsequent deliveries until owner opens)</label>
+      <label for="oneTimeOpening" style="margin-bottom: 0;">One-Time Opening</label>
       <label class="switch">
         <input type="checkbox" id="oneTimeOpening" name="oneTimeOpening">
         <span class="slider round"></span>
       </label>
     </div>
+    <p class="setting-explainer">Restricts subsequent deliveries until the owner opens the mailbox.</p>
 
     <div class="divider"></div>
 
@@ -529,7 +539,17 @@
       .then(response => response.json())
       .then(data => {
         document.getElementById('mailboxState').textContent = data.mailbox_state || '-';
-        document.getElementById('scannedId').textContent = data.wiegand_id || '-';
+        if (data.wiegand_id) {
+          const hex = data.wiegand_id;
+          const dec = parseInt(hex, 16);
+          if (!isNaN(dec)) {
+            document.getElementById('scannedId').textContent = `${hex} (${dec})`;
+          } else {
+            document.getElementById('scannedId').textContent = hex;
+          }
+        } else {
+          document.getElementById('scannedId').textContent = '-';
+        }
         document.getElementById('firmwareVersion').textContent = data.firmware_version || '-';
         document.getElementById('uiVersion').textContent = "UI_VERSION_PLACEHOLDER";
         
@@ -725,10 +745,10 @@
   }
 
   function generateRandomOtc() {
-    const chars = '0123456789ABCDEF';
+    const chars = '0123456789';
     let code = '';
     for (let i = 0; i < 6; i++) {
-      code += chars[Math.floor(Math.random() * 16)];
+      code += chars[Math.floor(Math.random() * 10)];
     }
     document.getElementById('newOtcCode').value = code;
   }

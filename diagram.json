@@ -1,0 +1,100 @@
+{
+  "version": 1,
+  "author": "Antigravity",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "wokwi-esp32-devkit-v1",
+      "id": "esp",
+      "top": 0,
+      "left": 0,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led_green",
+      "top": -80,
+      "left": -60,
+      "attrs": {
+        "color": "green"
+      }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led_red",
+      "top": -80,
+      "left": -10,
+      "attrs": {
+        "color": "red"
+      }
+    },
+    {
+      "type": "wokwi-buzzer",
+      "id": "buzzer",
+      "top": -90,
+      "left": 80,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-dc-motor",
+      "id": "motor",
+      "top": 150,
+      "left": -160,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-slide-switch",
+      "id": "sw_closed",
+      "top": 80,
+      "left": 160,
+      "attrs": {
+        "label": "Closed Switch",
+        "bounce": "0"
+      }
+    },
+    {
+      "type": "wokwi-slide-switch",
+      "id": "sw_parcel",
+      "top": 140,
+      "left": 160,
+      "attrs": {
+        "label": "Parcel Switch",
+        "bounce": "0",
+        "value": "1"
+      }
+    },
+    {
+      "type": "wokwi-slide-switch",
+      "id": "sw_mail",
+      "top": 200,
+      "left": 160,
+      "attrs": {
+        "label": "Mail Switch",
+        "bounce": "0",
+        "value": "1"
+      }
+    }
+  ],
+  "connections": [
+    [ "led_green:A", "esp:D19", "green", [ "v0" ] ],
+    [ "led_green:C", "esp:GND.1", "black", [ "v0" ] ],
+    [ "led_red:A", "esp:D18", "red", [ "v0" ] ],
+    [ "led_red:C", "esp:GND.1", "black", [ "v0" ] ],
+    [ "buzzer:1", "esp:D21", "purple", [ "v0" ] ],
+    [ "buzzer:2", "esp:GND.2", "black", [ "v0" ] ],
+    [ "motor:POS", "esp:D33", "blue", [ "h0" ] ],
+    [ "motor:NEG", "esp:D25", "gray", [ "h0" ] ],
+    [ "sw_closed:2", "esp:TX2", "orange", [ "h0" ] ],
+    [ "sw_closed:1", "esp:GND.1", "black", [ "h0" ] ],
+    [ "sw_closed:3", "esp:3V3", "red", [ "h0" ] ],
+    [ "sw_parcel:2", "esp:RX2", "yellow", [ "h0" ] ],
+    [ "sw_parcel:1", "esp:GND.1", "black", [ "h0" ] ],
+    [ "sw_parcel:3", "esp:3V3", "red", [ "h0" ] ],
+    [ "sw_mail:2", "esp:D4", "green", [ "h0" ] ],
+    [ "sw_mail:1", "esp:GND.1", "black", [ "h0" ] ],
+    [ "sw_mail:3", "esp:3V3", "red", [ "h0" ] ]
+  ],
+  "serialMonitor": {
+    "display": "terminal"
+  }
+}
