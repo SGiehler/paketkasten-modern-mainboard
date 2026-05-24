@@ -126,6 +126,17 @@ void MelodyPlayer::play(const String& melodyName) {
         _currentMelody = tetrisMelody;
         _currentTempo = tetrisTempo;
         _melodySize = sizeof(tetrisMelody) / sizeof(int);
+    } else if (melodyName == "GEMINI") {
+        _wholenote = 1200;
+        static int geminiMelody[] = {
+            NOTE_A5, NOTE_B5, NOTE_CS6, NOTE_E6, NOTE_D6, NOTE_E6, NOTE_FS6, NOTE_A6
+        };
+        static int geminiTempo[] = {
+            8, 8, 8, 4, 8, 8, 8, 2
+        };
+        _currentMelody = geminiMelody;
+        _currentTempo = geminiTempo;
+        _melodySize = sizeof(geminiMelody) / sizeof(int);
     } else {
         _wholenote = 2000;
         static int defaultMelody[] = {

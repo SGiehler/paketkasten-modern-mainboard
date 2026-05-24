@@ -218,37 +218,57 @@ void MailboxNetworkManager::setupWebServer() {
     });
 
     _server.on("/diagnostics", HTTP_GET, [](AsyncWebServerRequest *request){
+        int16_t status = WiFi.scanComplete();
+        bool scanRunning = (status == WIFI_SCAN_RUNNING);
+        static String cachedWifiJson = "[]";
+
+        if (status >= 0) {
+            JsonDocument wifiDoc;
+            JsonArray networks = wifiDoc.to<JsonArray>();
+            for (int i = 0; i < status; ++i) {
+                JsonObject net = networks.add<JsonObject>();
+                net["ssid"] = WiFi.SSID(i);
+                net["rssi"] = WiFi.RSSI(i);
+                net["secure"] = WiFi.encryptionType(i) != WIFI_AUTH_OPEN;
+            }
+            cachedWifiJson = "";
+            serializeJson(wifiDoc, cachedWifiJson);
+            WiFi.scanDelete();
+        }
+
         String jsonResponse;
         JsonDocument doc;
         doc["wiegand_id"] = lastScannedWiegandId;
+        doc["last_code"] = lastKeypadCode;
         doc["firmware_version"] = FIRMWARE_VERSION;
         doc["mailbox_state"] = getMailboxStateString();
         doc["closed_switch"] = switchManager.isClosedPressed();
         doc["parcel_switch"] = switchManager.isParcelPressed();
         doc["mail_switch"] = switchManager.isMailPressed();
         doc["delivery_blocked"] = deliveryBlocked;
+        doc["wifi_scan_running"] = scanRunning;
+
+        if (cachedWifiJson != "") {
+            doc["wifi_networks"] = serialized(cachedWifiJson);
+        } else {
+            doc["wifi_networks"] = serialized("[]");
+        }
+
         serializeJson(doc, jsonResponse);
         request->send(200, "application/json", jsonResponse);
     });
 
     _server.on("/scan", HTTP_GET, [](AsyncWebServerRequest *request){
-        int16_t numNetworks = WiFi.scanNetworks();
-        JsonDocument doc;
-        JsonArray networks = doc.to<JsonArray>();
-        
-        if (numNetworks >= 0) {
-            for (int i = 0; i < numNetworks; ++i) {
-                JsonObject net = networks.add<JsonObject>();
-                net["ssid"] = WiFi.SSID(i);
-                net["rssi"] = WiFi.RSSI(i);
-                net["secure"] = WiFi.encryptionType(i) != WIFI_AUTH_OPEN;
+        int16_t status = WiFi.scanComplete();
+        if (status == WIFI_SCAN_RUNNING) {
+            request->send(200, "application/json", "{\"status\":\"scanning\"}");
+        } else {
+            if (status >= 0) {
+                WiFi.scanDelete();
             }
+            WiFi.scanNetworks(true, false);
+            request->send(200, "application/json", "{\"status\":\"started\"}");
         }
-        WiFi.scanDelete();
-
-        String jsonResponse;
-        serializeJson(doc, jsonResponse);
-        request->send(200, "application/json", jsonResponse);
     });
 
     _server.on("/save-onetime-codes", HTTP_POST, [](AsyncWebServerRequest *request){

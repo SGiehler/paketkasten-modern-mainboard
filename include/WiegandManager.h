@@ -19,6 +19,10 @@ private:
     bool _attached;
     void (*_onCodeCallback)(char* code, uint8_t bits);
     Wiegand _wiegand;
+
+    char _keypadPinStr[20];
+    uint8_t _keypadPinLen;
+    unsigned long _lastKeypadPressTime;
 };
 
 extern WiegandManager wiegandManager;

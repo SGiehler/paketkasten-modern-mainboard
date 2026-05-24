@@ -46,8 +46,8 @@ void Wiegand::detach() {
 void IRAM_ATTR Wiegand::data0ISR() {
     if (instance) {
         unsigned long now = micros();
-        if (!instance->_isReading || (now - instance->_lastBitMicros > 200)) {
-            if (instance->_bitCount < 32) {
+        if (!instance->_isReading || (now - instance->_lastBitMicros > 50)) {
+            if (instance->_bitCount < 64) {
                 instance->_code <<= 1;
                 instance->_bitCount = instance->_bitCount + 1;
             }
@@ -60,8 +60,8 @@ void IRAM_ATTR Wiegand::data0ISR() {
 void IRAM_ATTR Wiegand::data1ISR() {
     if (instance) {
         unsigned long now = micros();
-        if (!instance->_isReading || (now - instance->_lastBitMicros > 200)) {
-            if (instance->_bitCount < 32) {
+        if (!instance->_isReading || (now - instance->_lastBitMicros > 50)) {
+            if (instance->_bitCount < 64) {
                 instance->_code = (instance->_code << 1) | 1;
                 instance->_bitCount = instance->_bitCount + 1;
             }
@@ -102,7 +102,7 @@ bool Wiegand::isAvailable() {
     return false;
 }
 
-uint32_t Wiegand::getCode() {
+uint64_t Wiegand::getCode() {
     return _lastCode;
 }
 

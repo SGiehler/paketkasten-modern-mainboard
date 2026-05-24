@@ -278,8 +278,13 @@ void requestMailOpening(const char* requester) {
 void receivedWiegandCode(char* code, uint8_t bits) {
   Serial.print("Wiegand code received: ");
   Serial.println(code);
-  strncpy(lastScannedWiegandId, code, sizeof(lastScannedWiegandId) - 1);
-  lastScannedWiegandId[sizeof(lastScannedWiegandId) - 1] = '\0';
+  if (bits == 4 || bits == 8) {
+    strncpy(lastKeypadCode, code, sizeof(lastKeypadCode) - 1);
+    lastKeypadCode[sizeof(lastKeypadCode) - 1] = '\0';
+  } else {
+    strncpy(lastScannedWiegandId, code, sizeof(lastScannedWiegandId) - 1);
+    lastScannedWiegandId[sizeof(lastScannedWiegandId) - 1] = '\0';
+  }
 
   if (currentState == LOCKED) {
     std::string labelOut;

@@ -11,7 +11,7 @@ public:
     void detach();
     void loop();
     bool isAvailable();
-    uint32_t getCode();
+    uint64_t getCode();
     uint8_t getBitCount();
 
 private:
@@ -25,12 +25,12 @@ private:
     uint8_t _pinD1;
 
     volatile uint8_t _bitCount;
-    volatile uint32_t _code;
+    volatile uint64_t _code;
     
     volatile bool _isReading;
     volatile unsigned long _lastBitMicros;
 
-    uint32_t _lastCode;
+    uint64_t _lastCode;
     uint8_t _lastBitCount;
     bool _available;
 

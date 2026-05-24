@@ -336,11 +336,11 @@
     }
     .wifi-network-item {
       border-color: var(--dark-border);
-      background: #212529;
+      background: var(--dark-bg);
       color: var(--dark-color);
     }
     .wifi-network-item:hover {
-      background: var(--dark-bg);
+      background: #2b3035;
       border-color: var(--primary-color);
     }
   }
@@ -356,14 +356,15 @@
     padding: 12px;
     border: 1px solid var(--light-border);
     border-radius: 4px;
-    background: var(--light-input-bg);
+    background: var(--light-bg);
+    color: var(--light-color);
     cursor: pointer;
     transition: background 0.2s, border-color 0.2s;
     box-sizing: border-box;
   }
 
   .wifi-network-item:hover {
-    background: var(--light-bg);
+    background: #e9ecef;
     border-color: var(--primary-color);
   }
 
@@ -400,6 +401,10 @@
       <div class="diagnostic-item">
         <div class="label">Last Wiegand ID</div>
         <div class="value" id="scannedId">-</div>
+      </div>
+      <div class="diagnostic-item">
+        <div class="label">Last Code</div>
+        <div class="value" id="lastKeypadCode">-</div>
       </div>
       <div class="diagnostic-item">
         <div class="label">Delivery Mode</div>
@@ -606,6 +611,7 @@
           <option value="WINDOWS_XP_STARTUP">Windows XP Startup</option>
           <option value="INTEL_INSIDE">Intel Inside</option>
           <option value="TETRIS">Tetris</option>
+          <option value="GEMINI">Gemini</option>
         </select>
         <button type="button" class="btn btn-primary icon-btn" onclick="playSelectedMelody()" style="margin-top: 0; width: auto;">
             <span class="icon">🎵</span>
@@ -675,22 +681,16 @@
     .catch(error => console.error('Error opening mailbox:', error));
   }
 
+  let lastWifiScanRunning = false;
+  let wifiListRendered = false;
+
   function fetchDiagnostics() {
     fetch('/diagnostics')
       .then(response => response.json())
       .then(data => {
         document.getElementById('mailboxState').textContent = data.mailbox_state || '-';
-        if (data.wiegand_id) {
-          const hex = data.wiegand_id;
-          const dec = parseInt(hex, 16);
-          if (!isNaN(dec)) {
-            document.getElementById('scannedId').textContent = `${hex} (${dec})`;
-          } else {
-            document.getElementById('scannedId').textContent = hex;
-          }
-        } else {
-          document.getElementById('scannedId').textContent = '-';
-        }
+        document.getElementById('scannedId').textContent = data.wiegand_id || '-';
+        document.getElementById('lastKeypadCode').textContent = data.last_code || '-';
         document.getElementById('firmwareVersion').textContent = data.firmware_version || '-';
         document.getElementById('uiVersion').textContent = "UI_VERSION_PLACEHOLDER";
         
@@ -711,6 +711,28 @@
             dbText.textContent = 'Ready';
           }
         }
+
+        // Update WiFi scan UI status from diagnostics
+        const scanBtn = document.getElementById('wifiScanBtn');
+        const scanIcon = document.getElementById('wifiScanIcon');
+        const scanText = document.getElementById('wifiScanText');
+        const wifiScanResult = document.getElementById('wifiScanResult');
+
+        if (data.wifi_scan_running) {
+          scanBtn.disabled = true;
+          scanIcon.textContent = '⏳';
+          scanText.textContent = 'Scanning...';
+          wifiScanResult.style.display = 'block';
+        } else {
+          if (lastWifiScanRunning || (!wifiListRendered && data.wifi_networks && data.wifi_networks.length > 0)) {
+            scanBtn.disabled = false;
+            scanIcon.textContent = '🔍';
+            scanText.textContent = 'Scan';
+            renderWifiList(data.wifi_networks);
+            wifiListRendered = true;
+          }
+        }
+        lastWifiScanRunning = !!data.wifi_scan_running;
       })
       .catch(error => console.error('Error fetching diagnostics:', error));
   }
@@ -738,7 +760,7 @@
     codeDiv.className = 'code-entry';
     codeDiv.innerHTML = `
       <input type="text" placeholder="Label" class="label-input" value="${label}" />
-      <input type="text" placeholder="Code" class="code-input" value="${code}" />
+      <input type="text" placeholder="HEX Code" class="code-input" value="${code}" />
       <button type="button" class="remove-btn" onclick="removeCode(this)">&times;</button>
     `;
     container.appendChild(codeDiv);
@@ -1041,6 +1063,35 @@
     return Math.round((rssi + 100) * 2);
   }
 
+  function renderWifiList(networks) {
+    const wifiList = document.getElementById('wifiList');
+    wifiList.innerHTML = '';
+    
+    if (!networks || networks.length === 0) {
+      wifiList.innerHTML = '<div style="text-align: center; color: var(--off-color); padding: 10px;">No networks found</div>';
+      return;
+    }
+
+    // Sort by RSSI strength descending
+    networks.sort((a, b) => b.rssi - a.rssi);
+
+    networks.forEach(net => {
+      if (!net.ssid) return; // Skip hidden or empty SSIDs
+      const item = document.createElement('div');
+      item.className = 'wifi-network-item';
+      item.onclick = () => selectWifi(net.ssid);
+      
+      const pct = rssiToPercentage(net.rssi);
+      const secureIcon = net.secure ? '🔒' : '🔓';
+      
+      item.innerHTML = `
+        <span>${escapeHtml(net.ssid)}</span>
+        <span class="wifi-info">${secureIcon} 📶 ${pct}%</span>
+      `;
+      wifiList.appendChild(item);
+    });
+  }
+
   function scanWifi() {
     const scanBtn = document.getElementById('wifiScanBtn');
     const scanIcon = document.getElementById('wifiScanIcon');
@@ -1053,50 +1104,25 @@
     scanText.textContent = 'Scanning...';
     wifiScanResult.style.display = 'block';
     wifiList.innerHTML = '<div style="text-align: center; color: var(--off-color); padding: 10px;">Scanning for networks...</div>';
+    
+    wifiListRendered = false;
 
     fetch('/scan')
       .then(response => {
         if (!response.ok) {
-          throw new Error('Failed to scan WiFi');
+          throw new Error('Failed to start scan');
         }
         return response.json();
       })
-      .then(networks => {
-        scanBtn.disabled = false;
-        scanIcon.textContent = '🔍';
-        scanText.textContent = 'Scan';
-        wifiList.innerHTML = '';
-        
-        if (networks.length === 0) {
-          wifiList.innerHTML = '<div style="text-align: center; color: var(--off-color); padding: 10px;">No networks found</div>';
-          return;
-        }
-
-        // Sort by RSSI strength descending
-        networks.sort((a, b) => b.rssi - a.rssi);
-
-        networks.forEach(net => {
-          if (!net.ssid) return; // Skip hidden or empty SSIDs
-          const item = document.createElement('div');
-          item.className = 'wifi-network-item';
-          item.onclick = () => selectWifi(net.ssid);
-          
-          const pct = rssiToPercentage(net.rssi);
-          const secureIcon = net.secure ? '🔒' : '🔓';
-          
-          item.innerHTML = `
-            <span>${escapeHtml(net.ssid)}</span>
-            <span class="wifi-info">${secureIcon} 📶 ${pct}%</span>
-          `;
-          wifiList.appendChild(item);
-        });
+      .then(data => {
+        console.log('WiFi scan initiated:', data);
       })
       .catch(error => {
-        console.error('Error scanning WiFi:', error);
+        console.error('Error starting WiFi scan:', error);
         scanBtn.disabled = false;
         scanIcon.textContent = '🔍';
         scanText.textContent = 'Scan';
-        wifiList.innerHTML = '<div style="text-align: center; color: var(--danger-color); padding: 10px;">Failed to load networks. Try again.</div>';
+        wifiList.innerHTML = '<div style="text-align: center; color: var(--danger-color); padding: 10px;">Failed to start scan. Try again.</div>';
       });
   }
 

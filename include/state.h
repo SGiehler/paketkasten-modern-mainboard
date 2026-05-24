@@ -40,6 +40,7 @@ extern const char* SOFTAP_PASSWORD;
 extern volatile MailboxState currentState;
 extern volatile bool deliveryBlocked;
 extern char lastScannedWiegandId[20];
+extern char lastKeypadCode[20];
 extern char lastUsed[50];
 extern unsigned long openStateEnterTime;
 extern unsigned long preOpeningStateEnterTime;

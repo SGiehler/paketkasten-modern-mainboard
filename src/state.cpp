@@ -24,6 +24,7 @@ const char* SOFTAP_PASSWORD = "G67zC4OiB";
 volatile MailboxState currentState = LOCKED;
 volatile bool deliveryBlocked = false;
 char lastScannedWiegandId[20] = "";
+char lastKeypadCode[20] = "";
 char lastUsed[50] = "unknown";
 unsigned long openStateEnterTime = 0;
 unsigned long preOpeningStateEnterTime = 0;
