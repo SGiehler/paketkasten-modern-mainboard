@@ -16,6 +16,23 @@ void LedController::begin() {
 }
 
 void LedController::update() {
+    if (calibrationActive) {
+        static unsigned long lastBlinkTime = 0;
+        static bool blinkState = false;
+        if (millis() - lastBlinkTime > 250) {
+            blinkState = !blinkState;
+            lastBlinkTime = millis();
+        }
+        if (blinkState) {
+            digitalWrite(_greenPin, HIGH);
+            digitalWrite(_redPin, LOW);
+        } else {
+            digitalWrite(_greenPin, LOW);
+            digitalWrite(_redPin, HIGH);
+        }
+        return;
+    }
+
     switch (currentState) {
         case LOCKED:
             digitalWrite(_greenPin, LOW);

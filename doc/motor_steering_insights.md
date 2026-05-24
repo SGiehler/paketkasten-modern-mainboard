@@ -53,9 +53,15 @@ During development, several critical hardware-software integration conflicts wer
 - **Problem**: When the closed switch triggered, the ISR immediately set `currentState = LOCKED` and braked the motor. However, on the next tick, the autolock loop saw `LOCKED` state but the `Bounce2` debouncer (which is slow) was still reporting `isClosedPressed() == false`. The autolock system assumed the door fell open and immediately re-triggered `LOCKING` state, causing the motor to stutterstep.
 - **Solution**: Added a $1\text{-second}$ cooldown to the default autolock checker (`millis() - lockedStateEnterTime > 1000`) and a $2.5\text{-second}$ cooldown to consecutive manual/Wiegand open requests, allowing the hardware, power grid, and debouncer variables to settle cleanly.
 
+### F. Startup Boost vs. Continuous Full-Power Overshoot
+- **Problem**: Lower duty cycles might not provide enough torque to overcome initial static friction and move the cam. However, driving the motor continuously at `FULL_POWER_DUTY_CYCLE` (200) causes rapid movement, massive overshoot, and severe mechanical damage/jamming.
+- **Solution**: Implemented a ramp profile in the motor controller. It applies `FULL_POWER_DUTY_CYCLE` for a brief boost of exactly `FULL_POWER_MS` (100ms) to overcome static friction, then ramps down to the configured target duty cycle (e.g. `dutyCycleOpen` or `dutyCycleClose`).
+
 ---
 
 ## 4. Key Rules for Future Modifications
 - **Do not use non-IRAM functions in ISRs**: Any helper function called inside `closedSwitchISR()`, `parcelSwitchISR()`, or `mailSwitchISR()` (such as pin-checking functions) [must](../src/SwitchManager.cpp) have the `IRAM_ATTR` attribute. Never call standard ESP-IDF driver functions unless they are explicitly mapped to IRAM in `sdkconfig`.
 - **Do not introduce time-based startup blanking windows**: The travel distance between `Closed` and `Parcel` is mechanically very short. Any time-based masking will cause overshoots on fast runs. Always rely on high-speed pin sampling (`ets_delay_us`) for noise filtering instead.
 - **Maintain the Autolock Cooldown**: Always ensure that the autolock logic gives the `Bounce2` debouncer enough time to update its state after an ISR-driven state change.
+- **Never drive the motor continuously at FULL_POWER_DUTY_CYCLE**: Always restrict full power (200) to the brief 100ms startup boost (`FULL_POWER_MS`). Operating continuously at full power will cause overshoot and damage the mechanics.
+

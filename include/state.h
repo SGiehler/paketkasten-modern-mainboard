@@ -49,6 +49,14 @@ extern volatile unsigned long lockedStateEnterTime;
 extern volatile bool wiegandAttached;
 extern volatile bool shouldRestart;
 
+// Calibration variables
+extern volatile bool calibrationActive;
+extern volatile int calibrationStep;
+extern volatile int calibrationCandidateDuty;
+extern volatile unsigned long calibrationStepTime;
+extern int calibratedOpen;
+extern int calibratedClose;
+
 extern std::vector<String> mqttMessageQueue;
 extern SemaphoreHandle_t mqttQueueMutex;
 
@@ -57,6 +65,9 @@ String getMailboxStateString();
 void requestParcelOpening(const char* requester);
 void requestMailOpening(const char* requester);
 void publishState();
+void startCalibration();
+void updateCalibration();
 
 #endif
+
 

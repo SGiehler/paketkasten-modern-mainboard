@@ -128,7 +128,9 @@ void appTask(void* param) {
     ledController.update();
     melodyPlayer.update();
 
-    if (currentState != MOTOR_ERROR) {
+    updateCalibration();
+
+    if (currentState != MOTOR_ERROR && !calibrationActive) {
       bool shouldLock = false;
 
       if ((currentState == MAIL_OPEN || currentState == PARCEL_OPEN) && (millis() - openStateEnterTime > 1000)) {
@@ -168,7 +170,7 @@ void appTask(void* param) {
     }
 
     // Delayed Wiegand attachment to prevent motor braking noise from causing false scans
-    if (currentState == LOCKED && !wiegandManager.isAttached() && (millis() - lockedStateEnterTime > 500)) {
+    if (currentState == LOCKED && !wiegandManager.isAttached() && (millis() - lockedStateEnterTime > 500) && !calibrationActive) {
       wiegandManager.attach();
       Serial.println("Wiegand reader re-attached after motor noise cooldown");
     }
@@ -246,6 +248,7 @@ void triggerCallback(const char* compartment) {
 }
 
 void requestParcelOpening(const char* requester) {
+  if (calibrationActive) return;
   if (currentState == LOCKED && (millis() - lockedStateEnterTime > 2500)) {
     if (strcmp(requester, "webinterface") == 0 || strcmp(requester, "mqtt") == 0) {
       configManager.resetDeliveryBlockIfNeeded(requester);
@@ -261,6 +264,7 @@ void requestParcelOpening(const char* requester) {
 }
 
 void requestMailOpening(const char* requester) {
+  if (calibrationActive) return;
   if (currentState == LOCKED && (millis() - lockedStateEnterTime > 2500)) {
     if (strcmp(requester, "webinterface") == 0 || strcmp(requester, "mqtt") == 0) {
       configManager.resetDeliveryBlockIfNeeded(requester);
@@ -276,6 +280,10 @@ void requestMailOpening(const char* requester) {
 }
 
 void receivedWiegandCode(char* code, uint8_t bits) {
+  if (calibrationActive) {
+    Serial.println("Wiegand code ignored: calibration active");
+    return;
+  }
   Serial.print("Wiegand code received: ");
   Serial.println(code);
   if (bits == 4 || bits == 8) {
@@ -331,6 +339,7 @@ void receivedWiegandCode(char* code, uint8_t bits) {
 }
 
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
+  if (calibrationActive) return;
   String message;
   for (int i = 0; i < length; i++) {
     message += (char)payload[i];
@@ -360,6 +369,124 @@ void publishState() {
   if (xSemaphoreTake(mqttQueueMutex, pdMS_TO_TICKS(10)) == pdTRUE) {
     mqttMessageQueue.push_back(output);
     xSemaphoreGive(mqttQueueMutex);
+  }
+}
+
+void updateCalibration() {
+  if (!calibrationActive) return;
+
+  static int lastStep = -1;
+  if (calibrationStep != lastStep) {
+    Serial.printf("[Calibration] Step change: %d -> %d\n", lastStep, calibrationStep);
+    lastStep = calibrationStep;
+  }
+
+  switch (calibrationStep) {
+    case 1: // Prep: closing (using configured close duty cycle)
+      if (currentState == LOCKED) {
+        calibrationStep = 2; // Move to cooldown
+        calibrationStepTime = millis();
+      } else if (currentState == MOTOR_ERROR) {
+        Serial.println("[Calibration] Error: Prep closing failed.");
+        calibrationStep = 8; // Error
+      } else if (currentState != LOCKING) {
+        currentState = LOCKING;
+        motorStartTime = millis();
+      }
+      break;
+
+    case 2: // Cooldown before testing open (2000ms)
+      if (millis() - calibrationStepTime > 2000) {
+        calibrationCandidateDuty = 20;
+        currentState = OPENING_TO_PARCEL;
+        motorStartTime = millis();
+        calibrationStep = 3;
+        Serial.printf("[Calibration] Testing open with candidate duty %d\n", calibrationCandidateDuty);
+      }
+      break;
+
+    case 3: // Testing open
+      if (currentState == PARCEL_OPEN) {
+        calibratedOpen = calibrationCandidateDuty + 10;
+        Serial.printf("[Calibration] Open Success! Candidate %d -> Calibrated Open %d\n", calibrationCandidateDuty, calibratedOpen);
+        calibrationStep = 4; // Cooldown before testing close
+        calibrationStepTime = millis();
+      } else if (currentState == MOTOR_ERROR) {
+        calibrationCandidateDuty += 5;
+        if (calibrationCandidateDuty > 160) {
+          Serial.println("[Calibration] Error: Open calibration exceeded maximum limit (160)");
+          calibrationStep = 8;
+        } else {
+          Serial.printf("[Calibration] Open attempt failed. Retrying with duty %d. Closing first...\n", calibrationCandidateDuty);
+          currentState = LOCKED; // Reset state machine status to allow locking
+          calibrationStep = 1; // Go to prep closing to reset position
+        }
+      }
+      break;
+
+    case 4: // Cooldown before testing close (2000ms)
+      if (millis() - calibrationStepTime > 2000) {
+        calibrationCandidateDuty = 20;
+        currentState = LOCKING;
+        motorStartTime = millis();
+        calibrationStep = 6;
+        Serial.printf("[Calibration] Testing close with candidate duty %d\n", calibrationCandidateDuty);
+      }
+      break;
+
+    case 5: // Prep: opening (using configured open duty cycle)
+      if (currentState == PARCEL_OPEN) {
+        calibrationStep = 4; // Move to cooldown before testing close
+        calibrationStepTime = millis();
+      } else if (currentState == MOTOR_ERROR) {
+        Serial.println("[Calibration] Error: Prep opening failed.");
+        calibrationStep = 8; // Error
+      } else if (currentState != OPENING_TO_PARCEL) {
+        currentState = OPENING_TO_PARCEL;
+        motorStartTime = millis();
+      }
+      break;
+
+    case 6: // Testing close
+      if (currentState == LOCKED) {
+        calibratedClose = calibrationCandidateDuty + 10;
+        Serial.printf("[Calibration] Close Success! Candidate %d -> Calibrated Close %d\n", calibrationCandidateDuty, calibratedClose);
+        
+        Config& config = configManager.getConfig();
+        config.dutyCycleOpen = calibratedOpen;
+        if (config.dutyCycleOpen > 160) config.dutyCycleOpen = 160;
+        if (config.dutyCycleOpen < 20) config.dutyCycleOpen = 20;
+
+        config.dutyCycleClose = calibratedClose;
+        if (config.dutyCycleClose > 100) config.dutyCycleClose = 100;
+        if (config.dutyCycleClose < 20) config.dutyCycleClose = 20;
+
+        configManager.save();
+        Serial.println("[Calibration] Calibration successfully completed and saved.");
+        calibrationStep = 7;
+      } else if (currentState == MOTOR_ERROR) {
+        calibrationCandidateDuty += 5;
+        if (calibrationCandidateDuty > 100) {
+          Serial.println("[Calibration] Error: Close calibration exceeded maximum limit (100)");
+          calibrationStep = 8;
+        } else {
+          Serial.printf("[Calibration] Close attempt failed. Retrying with duty %d. Opening first...\n", calibrationCandidateDuty);
+          currentState = PARCEL_OPEN; // Reset state machine status to allow opening
+          calibrationStep = 5; // Go to prep opening to reset position
+        }
+      }
+      break;
+
+    case 7: // Success done
+      melodyPlayer.play("GEMINI");
+      calibrationActive = false;
+      break;
+
+    case 8: // Error failed
+      melodyPlayer.play("NONE");
+      calibrationActive = false;
+      currentState = MOTOR_ERROR; // Keep motor error state so user knows it failed
+      break;
   }
 }
 

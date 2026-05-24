@@ -248,6 +248,9 @@ void MailboxNetworkManager::setupWebServer() {
         doc["delivery_blocked"] = deliveryBlocked;
         doc["one_time_opening"] = configManager.getConfig().oneTimeOpening;
         doc["wifi_scan_running"] = scanRunning;
+        doc["calibration_active"] = calibrationActive;
+        doc["calibration_step"] = (int)calibrationStep;
+        doc["calibration_candidate"] = (int)calibrationCandidateDuty;
 
         if (cachedWifiJson != "") {
             doc["wifi_networks"] = serialized(cachedWifiJson);
@@ -307,6 +310,15 @@ void MailboxNetworkManager::setupWebServer() {
             request->send(200, "text/plain", "OK");
         } else {
             request->send(400, "text/plain", "Bad Request");
+        }
+    });
+
+    _server.on("/calibrate", HTTP_POST, [](AsyncWebServerRequest *request){
+        if (calibrationActive) {
+            request->send(400, "text/plain", "Calibration already in progress");
+        } else {
+            startCalibration();
+            request->send(200, "text/plain", "OK");
         }
     });
 }

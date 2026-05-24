@@ -32,14 +32,25 @@ void MotorController::update() {
     int dutyCycle;
     Config& config = configManager.getConfig();
 
+    int targetDutyOpen = config.dutyCycleOpen;
+    int targetDutyClose = config.dutyCycleClose;
+
+    if (calibrationActive) {
+        if (calibrationStep == 3) { // Testing open
+            targetDutyOpen = calibrationCandidateDuty;
+        } else if (calibrationStep == 6) { // Testing close
+            targetDutyClose = calibrationCandidateDuty;
+        }
+    }
+
     switch (currentState) {
         case OPENING_TO_PARCEL:
         case OPENING_TO_MAIL:
-            dutyCycle = config.dutyCycleOpen;
+            dutyCycle = targetDutyOpen;
             if (elapsedTime < FULL_POWER_MS) {
                 dutyCycle = FULL_POWER_DUTY_CYCLE;
             } else if (elapsedTime < (RAMP_DOWN_MS + FULL_POWER_MS)) {
-                dutyCycle = FULL_POWER_DUTY_CYCLE - (FULL_POWER_DUTY_CYCLE - config.dutyCycleOpen) * (elapsedTime - FULL_POWER_MS) / RAMP_DOWN_MS;
+                dutyCycle = FULL_POWER_DUTY_CYCLE - (FULL_POWER_DUTY_CYCLE - targetDutyOpen) * (elapsedTime - FULL_POWER_MS) / RAMP_DOWN_MS;
             }
             noInterrupts();
             analogWrite(_pin1, dutyCycle);
@@ -47,11 +58,11 @@ void MotorController::update() {
             interrupts();
             break;
         case LOCKING:
-            dutyCycle = config.dutyCycleClose;
+            dutyCycle = targetDutyClose;
             if (elapsedTime < FULL_POWER_MS) {
                 dutyCycle = FULL_POWER_DUTY_CYCLE;
             } else if (elapsedTime < (RAMP_DOWN_MS + FULL_POWER_MS)) { 
-                dutyCycle = FULL_POWER_DUTY_CYCLE - (FULL_POWER_DUTY_CYCLE - config.dutyCycleClose) * (elapsedTime - FULL_POWER_MS) / RAMP_DOWN_MS;
+                dutyCycle = FULL_POWER_DUTY_CYCLE - (FULL_POWER_DUTY_CYCLE - targetDutyClose) * (elapsedTime - FULL_POWER_MS) / RAMP_DOWN_MS;
             }
             noInterrupts();
             analogWrite(_pin1, 0);

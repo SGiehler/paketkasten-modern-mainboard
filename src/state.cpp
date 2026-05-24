@@ -33,6 +33,14 @@ volatile unsigned long lockedStateEnterTime = 0;
 volatile bool wiegandAttached = true;
 volatile bool shouldRestart = false;
 
+// Calibration variables
+volatile bool calibrationActive = false;
+volatile int calibrationStep = 0;
+volatile int calibrationCandidateDuty = 20;
+volatile unsigned long calibrationStepTime = 0;
+int calibratedOpen = 0;
+int calibratedClose = 0;
+
 std::vector<String> mqttMessageQueue;
 SemaphoreHandle_t mqttQueueMutex = nullptr;
 
@@ -50,3 +58,17 @@ String getMailboxStateString() {
     default: return "UNKNOWN";
   }
 }
+
+void startCalibration() {
+    calibrationActive = true;
+    calibrationStep = 1; // start with prep closing
+    calibratedOpen = 0;
+    calibratedClose = 0;
+    calibrationCandidateDuty = 20;
+    calibrationStepTime = millis();
+    if (currentState == MOTOR_ERROR) {
+        currentState = LOCKED;
+    }
+    Serial.println("[Calibration] Auto-calibration started!");
+}
+
