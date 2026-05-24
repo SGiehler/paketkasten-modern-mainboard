@@ -39,7 +39,7 @@ void MotorController::update() {
             if (elapsedTime < FULL_POWER_MS) {
                 dutyCycle = FULL_POWER_DUTY_CYCLE;
             } else if (elapsedTime < (RAMP_DOWN_MS + FULL_POWER_MS)) {
-                dutyCycle = 255 - (255 - config.dutyCycleOpen) * (elapsedTime - 100) / RAMP_DOWN_MS;
+                dutyCycle = FULL_POWER_DUTY_CYCLE - (FULL_POWER_DUTY_CYCLE - config.dutyCycleOpen) * (elapsedTime - FULL_POWER_MS) / RAMP_DOWN_MS;
             }
             noInterrupts();
             analogWrite(_pin1, dutyCycle);
@@ -51,7 +51,7 @@ void MotorController::update() {
             if (elapsedTime < FULL_POWER_MS) {
                 dutyCycle = FULL_POWER_DUTY_CYCLE;
             } else if (elapsedTime < (RAMP_DOWN_MS + FULL_POWER_MS)) { 
-                dutyCycle = 255 - (255 - config.dutyCycleClose) * (elapsedTime - 50) / RAMP_DOWN_MS;
+                dutyCycle = FULL_POWER_DUTY_CYCLE - (FULL_POWER_DUTY_CYCLE - config.dutyCycleClose) * (elapsedTime - FULL_POWER_MS) / RAMP_DOWN_MS;
             }
             noInterrupts();
             analogWrite(_pin1, 0);

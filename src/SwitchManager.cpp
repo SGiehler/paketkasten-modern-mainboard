@@ -36,19 +36,19 @@ void SwitchManager::update() {
 
     switch (currentState) {
         case OPENING_TO_PARCEL:
-            if (_parcelSwitch.pressed()) {
+            if (_parcelSwitch.isPressed()) {
                 currentState = PARCEL_OPEN;
                 openStateEnterTime = millis();
             }
             break;
         case OPENING_TO_MAIL:
-            if (_mailSwitch.pressed()) {
+            if (_mailSwitch.isPressed()) {
                 currentState = MAIL_OPEN;
                 openStateEnterTime = millis();
             }
             break;
         case LOCKING:
-            if (_closedSwitch.pressed()) {
+            if (_closedSwitch.isPressed()) {
                 currentState = LOCKED;
                 lockedStateEnterTime = millis();
                 wiegandAttached = false;
@@ -65,13 +65,13 @@ void SwitchManager::update() {
 }
 
 bool SwitchManager::isClosedPressed() {
-    return digitalRead(_closedPin) == (_invertState ? HIGH : LOW);
+    return _closedSwitch.isPressed();
 }
 
 bool SwitchManager::isParcelPressed() {
-    return digitalRead(_parcelPin) == (_invertState ? HIGH : LOW);
+    return _parcelSwitch.isPressed();
 }
 
 bool SwitchManager::isMailPressed() {
-    return digitalRead(_mailPin) == (_invertState ? HIGH : LOW);
+    return _mailSwitch.isPressed();
 }

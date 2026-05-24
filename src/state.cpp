@@ -13,7 +13,7 @@ const int WIEGAND_D1_PIN = 26;
 const int BUZZER_PIN = 21;
 
 // Constants
-const int PWM_FREQ = 50000;
+const int PWM_FREQ = 1000;
 const int FULL_POWER_MS = 100;
 const int FULL_POWER_DUTY_CYCLE = 200;
 const int RAMP_DOWN_MS = 10;

@@ -20,7 +20,7 @@
 #include <WiFiClientSecure.h>
 
 // Global configurations
-int debounceDelay = 1; // in ms
+int debounceDelay = 5; // in ms
 const bool INVERT_SWITCH_STATE = false;
 
 // Function declarations
