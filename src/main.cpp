@@ -20,7 +20,7 @@
 #include <WiFiClientSecure.h>
 
 // Global configurations
-int debounceDelay = 5; // in ms
+int debounceDelay = 2; // in ms
 const bool INVERT_SWITCH_STATE = false;
 
 // Function declarations
@@ -156,7 +156,7 @@ void appTask(void* param) {
         }
 
         // if locked is the current state but the locked switch isn't pressed set locking.
-        if (currentState == LOCKED && !switchManager.isClosedPressed()) {
+        if (currentState == LOCKED && !switchManager.isClosedPressed() && (millis() - lockedStateEnterTime > 1000)) {
           Serial.println("Default Lock");
           shouldLock = true;
         }
@@ -246,7 +246,7 @@ void triggerCallback(const char* compartment) {
 }
 
 void requestParcelOpening(const char* requester) {
-  if (currentState == LOCKED) {
+  if (currentState == LOCKED && (millis() - lockedStateEnterTime > 2500)) {
     if (strcmp(requester, "webinterface") == 0 || strcmp(requester, "mqtt") == 0) {
       configManager.resetDeliveryBlockIfNeeded(requester);
     }
@@ -261,7 +261,7 @@ void requestParcelOpening(const char* requester) {
 }
 
 void requestMailOpening(const char* requester) {
-  if (currentState == LOCKED) {
+  if (currentState == LOCKED && (millis() - lockedStateEnterTime > 2500)) {
     if (strcmp(requester, "webinterface") == 0 || strcmp(requester, "mqtt") == 0) {
       configManager.resetDeliveryBlockIfNeeded(requester);
     }
@@ -292,7 +292,7 @@ void receivedWiegandCode(char* code, uint8_t bits) {
     AccessType result = AccessControl::evaluate(code, config.ownerCodes.c_str(), config.deliveryCodes.c_str(), &labelOut);
     
     if (result == AccessType::OPEN_MAIL) {
-      if (config.oneTimeOpening && deliveryBlocked) {
+      if (deliveryBlocked) {
         deliveryBlocked = false;
         configManager.save();
         Serial.printf("Delivery block reset by owner card scan (%s)\n", labelOut.c_str());

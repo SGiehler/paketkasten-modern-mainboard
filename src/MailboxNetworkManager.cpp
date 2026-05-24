@@ -246,6 +246,7 @@ void MailboxNetworkManager::setupWebServer() {
         doc["parcel_switch"] = switchManager.isParcelPressed();
         doc["mail_switch"] = switchManager.isMailPressed();
         doc["delivery_blocked"] = deliveryBlocked;
+        doc["one_time_opening"] = configManager.getConfig().oneTimeOpening;
         doc["wifi_scan_running"] = scanRunning;
 
         if (cachedWifiJson != "") {

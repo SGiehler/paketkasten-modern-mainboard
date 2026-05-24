@@ -42,11 +42,11 @@ extern volatile bool deliveryBlocked;
 extern char lastScannedWiegandId[20];
 extern char lastKeypadCode[20];
 extern char lastUsed[50];
-extern unsigned long openStateEnterTime;
+extern volatile unsigned long openStateEnterTime;
 extern unsigned long preOpeningStateEnterTime;
-extern unsigned long motorStartTime;
-extern unsigned long lockedStateEnterTime;
-extern bool wiegandAttached;
+extern volatile unsigned long motorStartTime;
+extern volatile unsigned long lockedStateEnterTime;
+extern volatile bool wiegandAttached;
 extern volatile bool shouldRestart;
 
 extern std::vector<String> mqttMessageQueue;

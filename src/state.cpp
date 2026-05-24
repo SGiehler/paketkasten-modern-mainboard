@@ -26,11 +26,11 @@ volatile bool deliveryBlocked = false;
 char lastScannedWiegandId[20] = "";
 char lastKeypadCode[20] = "";
 char lastUsed[50] = "unknown";
-unsigned long openStateEnterTime = 0;
+volatile unsigned long openStateEnterTime = 0;
 unsigned long preOpeningStateEnterTime = 0;
-unsigned long motorStartTime = 0;
-unsigned long lockedStateEnterTime = 0;
-bool wiegandAttached = true;
+volatile unsigned long motorStartTime = 0;
+volatile unsigned long lockedStateEnterTime = 0;
+volatile bool wiegandAttached = true;
 volatile bool shouldRestart = false;
 
 std::vector<String> mqttMessageQueue;

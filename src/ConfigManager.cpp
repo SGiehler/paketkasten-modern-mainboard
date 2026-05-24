@@ -37,6 +37,9 @@ void ConfigManager::load() {
 }
 
 void ConfigManager::save() {
+    if (!_config.oneTimeOpening) {
+        deliveryBlocked = false;
+    }
     preferences.begin(PREFERENCES_NAMESPACE, false);
     preferences.putString(SSID_KEY, _config.ssid);
     preferences.putString(PASSWORD_KEY, _config.password);
@@ -69,7 +72,7 @@ void ConfigManager::factoryReset() {
 }
 
 void ConfigManager::resetDeliveryBlockIfNeeded(const char* requester) {
-    if (_config.oneTimeOpening && deliveryBlocked) {
+    if (deliveryBlocked) {
         deliveryBlocked = false;
         preferences.begin(PREFERENCES_NAMESPACE, false);
         preferences.putBool(DELIVERY_BLOCKED_KEY, false);

@@ -697,7 +697,11 @@
         const dbElement = document.getElementById('deliveryBlocked');
         const dbText = document.getElementById('deliveryBlockedText');
         if (dbElement && dbText) {
-          if (data.delivery_blocked) {
+          if (!data.one_time_opening) {
+            dbElement.classList.remove('status-on');
+            dbElement.classList.add('status-off');
+            dbText.textContent = 'Disabled';
+          } else if (data.delivery_blocked) {
             dbElement.classList.remove('status-off');
             dbElement.classList.add('status-on');
             dbText.textContent = 'Blocked';
