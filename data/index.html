@@ -43,17 +43,19 @@
   h1, h2 {
     text-align: center;
     margin-bottom: 20px;
+    font-weight: 600;
   }
   
   h1 {
-    font-size: 2.5rem;
+    font-size: 2rem;
+    margin-top: 10px;
   }
   
   h2 {
-    font-size: 1.75rem;
+    font-size: 1.35rem;
     border-bottom: 1px solid var(--light-border);
-    padding-bottom: 10px;
-    margin-top: 20px;
+    padding-bottom: 8px;
+    margin-top: 25px;
   }
 
   .divider {
@@ -63,10 +65,14 @@
 
   .box {
     background-color: var(--light-input-bg);
-    padding: 20px 30px 30px 30px;
+    padding: 15px 30px 30px 30px;
     border-radius: 8px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     margin-bottom: 20px;
+  }
+
+  .box > h2:first-child {
+    margin-top: 0;
   }
 
   label {
@@ -171,7 +177,9 @@
     border-radius: 50%;
     cursor: pointer;
     font-size: 1.2rem;
-    line-height: 1;
+    line-height: 0;
+    padding: 0;
+    padding-bottom: 2px;
   }
   
   .remove-btn:hover {
@@ -317,6 +325,43 @@
       background: var(--dark-bg);
       border-color: var(--dark-border);
     }
+    .wifi-network-item {
+      border-color: var(--dark-border);
+      background: #212529;
+      color: var(--dark-color);
+    }
+    .wifi-network-item:hover {
+      background: var(--dark-bg);
+      border-color: var(--primary-color);
+    }
+  }
+
+  .wifi-networks-box {
+    margin-bottom: 15px;
+  }
+
+  .wifi-network-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid var(--light-border);
+    border-radius: 4px;
+    background: var(--light-input-bg);
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    box-sizing: border-box;
+  }
+
+  .wifi-network-item:hover {
+    background: var(--light-bg);
+    border-color: var(--primary-color);
+  }
+
+  .wifi-info {
+    font-size: 0.9rem;
+    color: var(--off-color);
+    font-family: monospace;
   }
 </style>
 </head>
@@ -394,7 +439,11 @@
     <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
       <input type="text" id="newOtcLabel" placeholder="Label (e.g. DHL)" style="margin-bottom: 0; flex: 2;" />
       <input type="text" id="newOtcCode" placeholder="Code (e.g. 123456)" style="margin-bottom: 0; flex: 2;" />
-      <button type="button" class="btn btn-primary" onclick="generateRandomOtc()" style="margin-top: 0; flex: 1; padding: 12px 10px;">Gen Code</button>
+      <button type="button" class="btn btn-primary icon-btn" onclick="generateRandomOtc()" style="margin-top: 0; flex: 1; white-space: nowrap;">
+        <span class="icon">🔑</span>
+        <span class="separator"></span>
+        <span class="text">Gen Code</span>
+      </button>
     </div>
     <button type="button" class="btn btn-primary icon-btn" onclick="addOneTimeCode()">
         <span class="icon">➕</span>
@@ -403,115 +452,157 @@
     </button>
   </div>
 
-  <form class="box" action="/save" method="post">
-    <h2>WiFi</h2>
-    <label for="ssid">SSID:</label>
-    <input type="text" id="ssid" name="ssid">
-    <label for="password">Password:</label>
-    <input type="password" id="password" name="password">
-
-    <h2>Wiegand</h2>
-    <div id="ownerCodes">
-      <label>Owner Codes:</label>
-    </div>
-    <button type="button" class="btn btn-primary icon-btn" onclick="addCode('owner')">
-        <span class="icon">➕</span>
-        <span class="separator"></span>
-        <span class="text">Add Owner Code</span>
-    </button>
-    
-    <div id="deliveryCodes" style="margin-top: 20px;">
-      <label>Delivery Codes:</label>
-    </div>
-    <button type="button" class="btn btn-primary icon-btn" onclick="addCode('delivery')">
-        <span class="icon">➕</span>
-        <span class="separator"></span>
-        <span class="text">Add Delivery Code</span>
-    </button>
-
-    <input type="hidden" id="ownerCodesJson" name="ownerCodes">
-    <input type="hidden" id="deliveryCodesJson" name="deliveryCodes">
-
-    <h2>HTTP Callback</h2>
-    <label for="callbackUrl">Callback URL:</label>
-    <input type="text" id="callbackUrl" name="callbackUrl" placeholder="http://[ip]/callback?comp={compartment}">
-    <p>Will be called when opening compartment.</p>
-    <p>Available variable:</p>
-    <ul>
-      <li>{compartment} = mail or parcel</li> 
-    </ul> 
-
-    <h2>MQTT</h2>
-    <label for="mqttServer">Server:</label>
-    <input type="text" id="mqttServer" name="mqttServer">
-    <label for="mqttPort">Port:</label>
-    <input type="number" id="mqttPort" name="mqttPort" value="1883">
-    <label for="mqttUser">User:</label>
-    <input type="text" id="mqttUser" name="mqttUser">
-    <label for="mqttPassword">Password:</label>
-    <input type="password" id="mqttPassword" name="mqttPassword">
-
-    <h2>Duty Cycles</h2>
-    <div class="label">Open: <output for="dutyCycleOpen" id="dutyCycleOpenValue"></output></div>
-    <input type="range" id="dutyCycleOpen" name="dutyCycleOpen" min="20" max="160">
-
-    <div class="label">Close: <output for="dutyCycleClose" id="dutyCycleCloseValue"></output></div>
-    <input type="range" id="dutyCycleClose" name="dutyCycleClose" min="20" max="100">
-
-    <h2>Melody</h2>
-    <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
-      <select id="melodySelect" name="selectedMelody" style="margin-bottom: 0; flex: 1;">
-        <option value="NOKIA_TUNE">Nokia Tune</option>
-        <option value="IMPERIAL_MARCH">Imperial March</option>
-        <option value="MARIO">Mario</option>
-        <option value="WINDOWS_XP_STARTUP">Windows XP Startup</option>
-        <option value="INTEL_INSIDE">Intel Inside</option>
-        <option value="TETRIS">Tetris</option>
-      </select>
-      <button type="button" class="btn btn-primary icon-btn" onclick="playSelectedMelody()" style="margin-top: 0; width: auto;">
-          <span class="icon">🎵</span>
+  <form action="/save" method="post">
+    <div class="box">
+      <h2>WiFi</h2>
+      <label for="ssid">SSID:</label>
+      <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+        <input type="text" id="ssid" name="ssid" style="margin-bottom: 0; flex: 1;">
+        <button type="button" id="wifiScanBtn" class="btn btn-primary icon-btn" onclick="scanWifi()" style="margin-top: 0; width: auto; white-space: nowrap;">
+          <span class="icon" id="wifiScanIcon">🔍</span>
           <span class="separator"></span>
-          <span class="text">Play Melody</span>
+          <span class="text" id="wifiScanText">Scan</span>
+        </button>
+      </div>
+
+      <div id="wifiScanResult" class="wifi-networks-box" style="display: none;">
+        <label style="margin-bottom: 10px;">Select Network:</label>
+        <div id="wifiList" style="max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+          <!-- Scanned networks populated here -->
+        </div>
+      </div>
+
+      <label for="password">Password:</label>
+      <input type="password" id="password" name="password">
+    </div>
+
+    <div class="box">
+      <h2>Wiegand</h2>
+      <div id="ownerCodes">
+        <label>Owner Codes:</label>
+      </div>
+      <button type="button" class="btn btn-primary icon-btn" onclick="addCode('owner')">
+          <span class="icon">➕</span>
+          <span class="separator"></span>
+          <span class="text">Add Owner Code</span>
+      </button>
+      
+      <div id="deliveryCodes" style="margin-top: 20px;">
+        <label>Delivery Codes:</label>
+      </div>
+      <button type="button" class="btn btn-primary icon-btn" onclick="addCode('delivery')">
+          <span class="icon">➕</span>
+          <span class="separator"></span>
+          <span class="text">Add Delivery Code</span>
+      </button>
+
+      <input type="hidden" id="ownerCodesJson" name="ownerCodes">
+      <input type="hidden" id="deliveryCodesJson" name="deliveryCodes">
+    </div>
+
+    <div class="box">
+      <h2>HTTP Callback</h2>
+      <label for="callbackUrl">Callback URL:</label>
+      <input type="text" id="callbackUrl" name="callbackUrl" placeholder="http://[ip]/callback?comp={compartment}">
+      <p>Will be called when opening compartment.</p>
+      <p>Available variable:</p>
+      <ul>
+        <li>{compartment} = mail or parcel</li> 
+      </ul> 
+    </div>
+
+    <div class="box">
+      <h2>MQTT</h2>
+      <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+        <div style="flex: 3;">
+          <label for="mqttServer">Server:</label>
+          <input type="text" id="mqttServer" name="mqttServer" style="margin-bottom: 0;">
+        </div>
+        <div style="flex: 1;">
+          <label for="mqttPort">Port:</label>
+          <input type="number" id="mqttPort" name="mqttPort" value="1883" style="margin-bottom: 0;">
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+        <div style="flex: 1;">
+          <label for="mqttUser">User:</label>
+          <input type="text" id="mqttUser" name="mqttUser" style="margin-bottom: 0;">
+        </div>
+        <div style="flex: 1;">
+          <label for="mqttPassword">Password:</label>
+          <input type="password" id="mqttPassword" name="mqttPassword" style="margin-bottom: 0;">
+        </div>
+      </div>
+    </div>
+
+    <div class="box">
+      <h2>Duty Cycles</h2>
+      <div class="label">Open: <output for="dutyCycleOpen" id="dutyCycleOpenValue"></output></div>
+      <input type="range" id="dutyCycleOpen" name="dutyCycleOpen" min="20" max="160">
+
+      <div class="label">Close: <output for="dutyCycleClose" id="dutyCycleCloseValue"></output></div>
+      <input type="range" id="dutyCycleClose" name="dutyCycleClose" min="20" max="100">
+    </div>
+
+    <div class="box">
+      <h2>Melody</h2>
+      <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+        <select id="melodySelect" name="selectedMelody" style="margin-bottom: 0; flex: 1;">
+          <option value="NONE">No Audio</option>
+          <option value="NOKIA_TUNE">Nokia Tune</option>
+          <option value="IMPERIAL_MARCH">Imperial March</option>
+          <option value="MARIO">Mario</option>
+          <option value="WINDOWS_XP_STARTUP">Windows XP Startup</option>
+          <option value="INTEL_INSIDE">Intel Inside</option>
+          <option value="TETRIS">Tetris</option>
+        </select>
+        <button type="button" class="btn btn-primary icon-btn" onclick="playSelectedMelody()" style="margin-top: 0; width: auto;">
+            <span class="icon">🎵</span>
+            <span class="separator"></span>
+            <span class="text">Play Melody</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="box">
+      <h2>Settings</h2>
+      <div class="setting-container">
+        <label for="autolock" style="margin-bottom: 0;">Default Autolock</label>
+        <label class="switch">
+          <input type="checkbox" id="autolock" name="autolock">
+          <span class="slider round"></span>
+        </label>
+      </div>
+      <p class="setting-explainer">Automatically locks the mailbox after 10 seconds of inactivity or when the door is closed.</p>
+
+      <div class="setting-container">
+        <label for="oneTimeOpening" style="margin-bottom: 0;">One-Time Opening</label>
+        <label class="switch">
+          <input type="checkbox" id="oneTimeOpening" name="oneTimeOpening">
+          <span class="slider round"></span>
+        </label>
+      </div>
+      <p class="setting-explainer">Restricts subsequent deliveries until the owner opens the mailbox.</p>
+    </div>
+
+    <div class="box" style="margin-bottom: 0;">
+      <button type="submit" class="btn btn-primary icon-btn">
+          <span class="icon">💾</span>
+          <span class="separator"></span>
+          <span class="text">Save Configuration & Reboot</span>
+      </button>
+      <a href="/update" class="btn btn-primary icon-btn">
+          <span class="icon">🔄</span>
+          <span class="separator"></span>
+          <span class="text">Firmware Update</span>
+      </a>
+      <button type="button" class="btn btn-danger icon-btn" onclick="factoryReset()">
+          <span class="icon">⚠️</span>
+          <span class="separator"></span>
+          <span class="text">Factory Reset</span>
       </button>
     </div>
-
-    <h2>Settings</h2>
-    <div class="setting-container">
-      <label for="autolock" style="margin-bottom: 0;">Default Autolock</label>
-      <label class="switch">
-        <input type="checkbox" id="autolock" name="autolock">
-        <span class="slider round"></span>
-      </label>
-    </div>
-    <p class="setting-explainer">Automatically locks the mailbox after 10 seconds of inactivity or when the door is closed.</p>
-
-    <div class="setting-container">
-      <label for="oneTimeOpening" style="margin-bottom: 0;">One-Time Opening</label>
-      <label class="switch">
-        <input type="checkbox" id="oneTimeOpening" name="oneTimeOpening">
-        <span class="slider round"></span>
-      </label>
-    </div>
-    <p class="setting-explainer">Restricts subsequent deliveries until the owner opens the mailbox.</p>
-
-    <div class="divider"></div>
-
-    <button type="submit" class="btn btn-primary icon-btn">
-        <span class="icon">💾</span>
-        <span class="separator"></span>
-        <span class="text">Save Configuration & Reboot</span>
-    </button>
-    <a href="/update" class="btn btn-primary icon-btn">
-        <span class="icon">🔄</span>
-        <span class="separator"></span>
-        <span class="text">Firmware Update</span>
-    </a>
-    <button type="button" class="btn btn-danger icon-btn" onclick="factoryReset()">
-        <span class="icon">⚠️</span>
-        <span class="separator"></span>
-        <span class="text">Factory Reset</span>
-    </button>
-    
   </form>
 </div>
 
@@ -842,6 +933,77 @@
         alert('Error performing factory reset.');
       });
     }
+  }
+
+  function rssiToPercentage(rssi) {
+    if (rssi >= -50) return 100;
+    if (rssi <= -100) return 0;
+    return Math.round((rssi + 100) * 2);
+  }
+
+  function scanWifi() {
+    const scanBtn = document.getElementById('wifiScanBtn');
+    const scanIcon = document.getElementById('wifiScanIcon');
+    const scanText = document.getElementById('wifiScanText');
+    const wifiScanResult = document.getElementById('wifiScanResult');
+    const wifiList = document.getElementById('wifiList');
+    
+    scanBtn.disabled = true;
+    scanIcon.textContent = '⏳';
+    scanText.textContent = 'Scanning...';
+    wifiScanResult.style.display = 'block';
+    wifiList.innerHTML = '<div style="text-align: center; color: var(--off-color); padding: 10px;">Scanning for networks...</div>';
+
+    fetch('/scan')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to scan WiFi');
+        }
+        return response.json();
+      })
+      .then(networks => {
+        scanBtn.disabled = false;
+        scanIcon.textContent = '🔍';
+        scanText.textContent = 'Scan';
+        wifiList.innerHTML = '';
+        
+        if (networks.length === 0) {
+          wifiList.innerHTML = '<div style="text-align: center; color: var(--off-color); padding: 10px;">No networks found</div>';
+          return;
+        }
+
+        // Sort by RSSI strength descending
+        networks.sort((a, b) => b.rssi - a.rssi);
+
+        networks.forEach(net => {
+          if (!net.ssid) return; // Skip hidden or empty SSIDs
+          const item = document.createElement('div');
+          item.className = 'wifi-network-item';
+          item.onclick = () => selectWifi(net.ssid);
+          
+          const pct = rssiToPercentage(net.rssi);
+          const secureIcon = net.secure ? '🔒' : '🔓';
+          
+          item.innerHTML = `
+            <span>${escapeHtml(net.ssid)}</span>
+            <span class="wifi-info">${secureIcon} 📶 ${pct}%</span>
+          `;
+          wifiList.appendChild(item);
+        });
+      })
+      .catch(error => {
+        console.error('Error scanning WiFi:', error);
+        scanBtn.disabled = false;
+        scanIcon.textContent = '🔍';
+        scanText.textContent = 'Scan';
+        wifiList.innerHTML = '<div style="text-align: center; color: var(--danger-color); padding: 10px;">Failed to load networks. Try again.</div>';
+      });
+  }
+
+  function selectWifi(ssid) {
+    document.getElementById('ssid').value = ssid;
+    document.getElementById('password').focus();
+    document.getElementById('wifiScanResult').style.display = 'none';
   }
 </script>
 </body>

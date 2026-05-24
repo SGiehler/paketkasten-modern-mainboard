@@ -28,6 +28,11 @@ void MelodyPlayer::play(const String& melodyName) {
     _noteStartTime = 0;
     _noteDuration = 0;
     _melodyPlaying = false;
+    noTone(_buzzerPin);
+
+    if (melodyName == "NONE") {
+        return;
+    }
 
     if (melodyName == "NOKIA_TUNE") {
         _wholenote = 1333;

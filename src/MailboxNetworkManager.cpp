@@ -175,6 +175,26 @@ void MailboxNetworkManager::setupWebServer() {
         request->send(200, "application/json", jsonResponse);
     });
 
+    _server.on("/scan", HTTP_GET, [](AsyncWebServerRequest *request){
+        int16_t numNetworks = WiFi.scanNetworks();
+        JsonDocument doc;
+        JsonArray networks = doc.to<JsonArray>();
+        
+        if (numNetworks >= 0) {
+            for (int i = 0; i < numNetworks; ++i) {
+                JsonObject net = networks.add<JsonObject>();
+                net["ssid"] = WiFi.SSID(i);
+                net["rssi"] = WiFi.RSSI(i);
+                net["secure"] = WiFi.encryptionType(i) != WIFI_AUTH_OPEN;
+            }
+        }
+        WiFi.scanDelete();
+
+        String jsonResponse;
+        serializeJson(doc, jsonResponse);
+        request->send(200, "application/json", jsonResponse);
+    });
+
     _server.on("/save-onetime-codes", HTTP_POST, [](AsyncWebServerRequest *request){
         if (request->hasParam("oneTimeCodes", true)) {
             Config& config = configManager.getConfig();
