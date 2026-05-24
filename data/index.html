@@ -306,6 +306,35 @@
     border-radius: 50%;
   }
 
+  .wifi-networks-box {
+    margin-bottom: 15px;
+  }
+
+  .wifi-network-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid var(--light-border);
+    border-radius: 4px;
+    background: var(--light-bg);
+    color: var(--light-color);
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    box-sizing: border-box;
+  }
+
+  .wifi-network-item:hover {
+    background: #e9ecef;
+    border-color: var(--primary-color);
+  }
+
+  .wifi-info {
+    font-size: 0.9rem;
+    color: var(--off-color);
+    font-family: monospace;
+  }
+
   @media (prefers-color-scheme: dark) {
     body {
       background-color: var(--dark-bg);
@@ -344,35 +373,6 @@
       border-color: var(--primary-color);
     }
   }
-
-  .wifi-networks-box {
-    margin-bottom: 15px;
-  }
-
-  .wifi-network-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px;
-    border: 1px solid var(--light-border);
-    border-radius: 4px;
-    background: var(--light-bg);
-    color: var(--light-color);
-    cursor: pointer;
-    transition: background 0.2s, border-color 0.2s;
-    box-sizing: border-box;
-  }
-
-  .wifi-network-item:hover {
-    background: #e9ecef;
-    border-color: var(--primary-color);
-  }
-
-  .wifi-info {
-    font-size: 0.9rem;
-    color: var(--off-color);
-    font-family: monospace;
-  }
 </style>
 </head>
 <body>
@@ -402,10 +402,7 @@
         <div class="label">Last Wiegand ID</div>
         <div class="value" id="scannedId">-</div>
       </div>
-      <div class="diagnostic-item">
-        <div class="label">Last Code</div>
-        <div class="value" id="lastKeypadCode">-</div>
-      </div>
+
       <div class="diagnostic-item">
         <div class="label">Delivery Mode</div>
         <div class="value"><span id="deliveryBlocked" class="status-indicator status-off"></span><span id="deliveryBlockedText">-</span></div>
@@ -690,7 +687,6 @@
       .then(data => {
         document.getElementById('mailboxState').textContent = data.mailbox_state || '-';
         document.getElementById('scannedId').textContent = data.wiegand_id || '-';
-        document.getElementById('lastKeypadCode').textContent = data.last_code || '-';
         document.getElementById('firmwareVersion').textContent = data.firmware_version || '-';
         document.getElementById('uiVersion').textContent = "UI_VERSION_PLACEHOLDER";
         
