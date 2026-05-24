@@ -29,6 +29,9 @@ void ConfigManager::load() {
     _config.autolock = preferences.getBool(AUTOLOCK_KEY, true);
     _config.oneTimeCodes = preferences.getString(ONE_TIME_CODES_KEY, "[]");
     _config.oneTimeOpening = preferences.getBool(ONE_TIME_OPENING_KEY, false);
+    _config.mqttUseTls = preferences.getBool(MQTT_USE_TLS_KEY, false);
+    _config.mqttSkipCertVal = preferences.getBool(MQTT_SKIP_CERT_VAL_KEY, false);
+    _config.callbackSkipCertVal = preferences.getBool(CALLBACK_SKIP_CERT_VAL_KEY, false);
     deliveryBlocked = preferences.getBool(DELIVERY_BLOCKED_KEY, false);
     preferences.end();
 }
@@ -50,6 +53,9 @@ void ConfigManager::save() {
     preferences.putBool(AUTOLOCK_KEY, _config.autolock);
     preferences.putString(ONE_TIME_CODES_KEY, _config.oneTimeCodes);
     preferences.putBool(ONE_TIME_OPENING_KEY, _config.oneTimeOpening);
+    preferences.putBool(MQTT_USE_TLS_KEY, _config.mqttUseTls);
+    preferences.putBool(MQTT_SKIP_CERT_VAL_KEY, _config.mqttSkipCertVal);
+    preferences.putBool(CALLBACK_SKIP_CERT_VAL_KEY, _config.callbackSkipCertVal);
     preferences.putBool(DELIVERY_BLOCKED_KEY, deliveryBlocked);
     preferences.end();
 }

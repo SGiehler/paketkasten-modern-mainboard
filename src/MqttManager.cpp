@@ -1,18 +1,61 @@
 #include "MqttManager.h"
 #include "ConfigManager.h"
 #include "state.h"
+#include <LittleFS.h>
 
 MqttManager mqttManager;
 
 MqttManager::MqttManager() :
-    _mqttClient(_wifiClient)
+    _netClient(nullptr)
 {}
+
+MqttManager::~MqttManager() {
+    if (_netClient != nullptr) {
+        delete _netClient;
+    }
+}
 
 void MqttManager::begin(void (*callback)(char* topic, byte* payload, unsigned int length)) {
     Config& config = configManager.getConfig();
     if (config.mqttServer != "") {
         Serial.print("Setting up MQTT server: ");
         Serial.println(config.mqttServer);
+
+        if (_netClient != nullptr) {
+            delete _netClient;
+            _netClient = nullptr;
+        }
+
+        if (config.mqttUseTls) {
+            Serial.println("MQTT: Using TLS (Secure connection)");
+            WiFiClientSecure* secureClient = new WiFiClientSecure();
+            if (config.mqttSkipCertVal) {
+                Serial.println("MQTT: Skipping certificate validation (Insecure)");
+                secureClient->setInsecure();
+            } else {
+                String caCert = "";
+                if (LittleFS.exists("/certs/mqtt_ca.pem")) {
+                    File file = LittleFS.open("/certs/mqtt_ca.pem", "r");
+                    if (file) {
+                        caCert = file.readString();
+                        file.close();
+                    }
+                }
+                if (caCert.length() > 0) {
+                    Serial.println("MQTT: Setting Root CA certificate");
+                    secureClient->setCACert(caCert.c_str());
+                } else {
+                    Serial.println("MQTT Warning: TLS requested but no CA certificate found. Falling back to insecure mode.");
+                    secureClient->setInsecure();
+                }
+            }
+            _netClient = secureClient;
+        } else {
+            Serial.println("MQTT: Using standard TCP (Unencrypted connection)");
+            _netClient = new WiFiClient();
+        }
+
+        _mqttClient.setClient(*_netClient);
         _mqttClient.setServer(config.mqttServer.c_str(), config.mqttPort);
         _mqttClient.setCallback(callback);
     }

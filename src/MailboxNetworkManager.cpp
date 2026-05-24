@@ -120,6 +120,32 @@ void MailboxNetworkManager::setupWebServer() {
         doc["autolock"] = config.autolock;
         doc["oneTimeCodes"] = config.oneTimeCodes;
         doc["oneTimeOpening"] = config.oneTimeOpening;
+        doc["mqttUseTls"] = config.mqttUseTls;
+        doc["mqttSkipCertVal"] = config.mqttSkipCertVal;
+        doc["callbackSkipCertVal"] = config.callbackSkipCertVal;
+
+        // Load MQTT CA Cert from LittleFS
+        String mqttCa = "";
+        if (LittleFS.exists("/certs/mqtt_ca.pem")) {
+            File file = LittleFS.open("/certs/mqtt_ca.pem", "r");
+            if (file) {
+                mqttCa = file.readString();
+                file.close();
+            }
+        }
+        doc["mqttCa"] = mqttCa;
+
+        // Load Callback CA Cert from LittleFS
+        String callbackCa = "";
+        if (LittleFS.exists("/certs/callback_ca.pem")) {
+            File file = LittleFS.open("/certs/callback_ca.pem", "r");
+            if (file) {
+                callbackCa = file.readString();
+                file.close();
+            }
+        }
+        doc["callbackCa"] = callbackCa;
+
         serializeJson(doc, jsonConfig);
         request->send(200, "application/json", jsonConfig);
     });
@@ -145,6 +171,36 @@ void MailboxNetworkManager::setupWebServer() {
         config.callbackUrl = request->arg("callbackUrl");
         config.autolock = request->hasArg("autolock");
         config.oneTimeOpening = request->hasArg("oneTimeOpening");
+        config.mqttUseTls = request->hasArg("mqttUseTls");
+        config.mqttSkipCertVal = request->hasArg("mqttSkipCertVal");
+        config.callbackSkipCertVal = request->hasArg("callbackSkipCertVal");
+
+        // Save MQTT CA Cert to LittleFS
+        if (request->hasArg("mqttCa")) {
+            if (!LittleFS.exists("/certs")) {
+                LittleFS.mkdir("/certs");
+            }
+            File file = LittleFS.open("/certs/mqtt_ca.pem", "w");
+            if (file) {
+                file.print(request->arg("mqttCa"));
+                file.close();
+                Serial.println("MQTT CA cert saved to LittleFS.");
+            }
+        }
+
+        // Save Callback CA Cert to LittleFS
+        if (request->hasArg("callbackCa")) {
+            if (!LittleFS.exists("/certs")) {
+                LittleFS.mkdir("/certs");
+            }
+            File file = LittleFS.open("/certs/callback_ca.pem", "w");
+            if (file) {
+                file.print(request->arg("callbackCa"));
+                file.close();
+                Serial.println("Callback CA cert saved to LittleFS.");
+            }
+        }
+
         configManager.save();
         delay(500);
         Serial.println("Configuration saved. Restarting...");

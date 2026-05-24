@@ -17,6 +17,7 @@
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
+#include <WiFiClientSecure.h>
 
 // Global configurations
 int debounceDelay = 1; // in ms
@@ -198,16 +199,49 @@ void triggerCallback(const char* compartment) {
     String url = config.callbackUrl;
     url.replace("{compartment}", compartment);
     HTTPClient http;
-    http.begin(url);
-    int httpCode = http.GET();
-    if (httpCode > 0) {
-      String payload = http.getString();
-      Serial.println(httpCode);
-      Serial.println(payload);
+    bool beginSuccess = false;
+
+    if (url.startsWith("https://")) {
+      WiFiClientSecure client;
+      if (config.callbackSkipCertVal) {
+        Serial.println("HTTPS Callback: Skipping certificate validation (Insecure)");
+        client.setInsecure();
+      } else {
+        String caCert = "";
+        if (LittleFS.exists("/certs/callback_ca.pem")) {
+          File file = LittleFS.open("/certs/callback_ca.pem", "r");
+          if (file) {
+            caCert = file.readString();
+            file.close();
+          }
+        }
+        if (caCert.length() > 0) {
+          Serial.println("HTTPS Callback: Setting Root CA certificate");
+          client.setCACert(caCert.c_str());
+        } else {
+          Serial.println("HTTPS Callback Warning: HTTPS requested but no CA certificate found. Falling back to insecure mode.");
+          client.setInsecure();
+        }
+      }
+      beginSuccess = http.begin(client, url);
     } else {
-      Serial.println("Error on HTTP request");
+      WiFiClient client;
+      beginSuccess = http.begin(client, url);
     }
-    http.end();
+
+    if (beginSuccess) {
+      int httpCode = http.GET();
+      if (httpCode > 0) {
+        String payload = http.getString();
+        Serial.printf("Callback response code: %d\n", httpCode);
+        Serial.println(payload);
+      } else {
+        Serial.printf("Error on HTTP request: %s\n", http.errorToString(httpCode).c_str());
+      }
+      http.end();
+    } else {
+      Serial.println("Failed to initiate connection in HTTPClient");
+    }
   }
 }
 

@@ -3,11 +3,13 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include <PubSubClient.h>
 
 class MqttManager {
 public:
     MqttManager();
+    ~MqttManager();
     void begin(void (*callback)(char* topic, byte* payload, unsigned int length));
     void update();
     bool isConnected();
@@ -17,7 +19,7 @@ private:
     void handleQueue();
     void reconnect();
 
-    WiFiClient _wifiClient;
+    Client* _netClient = nullptr;
     PubSubClient _mqttClient;
 };
 

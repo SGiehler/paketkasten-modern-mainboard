@@ -85,6 +85,7 @@
   input[type="password"],
   input[type="number"],
   input[type="range"],
+  textarea,
   select {
     width: 100%;
     padding: 12px;
@@ -93,6 +94,13 @@
     border-radius: 4px;
     box-sizing: border-box;
     font-size: 1rem;
+  }
+
+  textarea {
+    font-family: monospace;
+    resize: vertical;
+    min-height: 100px;
+    font-size: 0.85rem;
   }
 
   .btn {
@@ -316,6 +324,7 @@
     input[type="text"],
     input[type="password"],
     input[type="number"],
+    textarea,
     select {
       background-color: #212529;
       color: var(--dark-color);
@@ -509,6 +518,22 @@
       <ul>
         <li>{compartment} = mail or parcel</li> 
       </ul> 
+      
+      <div id="callbackTlsSection" style="margin-top: 15px; display: none;">
+        <div class="setting-container">
+          <label for="callbackSkipCertVal" style="margin-bottom: 0;">Skip HTTPS Certificate Validation (Insecure)</label>
+          <label class="switch">
+            <input type="checkbox" id="callbackSkipCertVal" name="callbackSkipCertVal">
+            <span class="slider round"></span>
+          </label>
+        </div>
+        <p class="setting-explainer">Enable to skip CA certificate validation for HTTPS callbacks (useful for self-signed certificates).</p>
+
+        <div id="callbackCaGroup">
+          <label for="callbackCa">HTTPS Root CA Certificate (PEM):</label>
+          <textarea id="callbackCa" name="callbackCa" placeholder="-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"></textarea>
+        </div>
+      </div>
     </div>
 
     <div class="box">
@@ -532,6 +557,31 @@
         <div style="flex: 1;">
           <label for="mqttPassword">Password:</label>
           <input type="password" id="mqttPassword" name="mqttPassword" style="margin-bottom: 0;">
+        </div>
+      </div>
+
+      <div class="setting-container" style="margin-top: 15px;">
+        <label for="mqttUseTls" style="margin-bottom: 0;">Use TLS for MQTT</label>
+        <label class="switch">
+          <input type="checkbox" id="mqttUseTls" name="mqttUseTls">
+          <span class="slider round"></span>
+        </label>
+      </div>
+      <p class="setting-explainer">Enable to encrypt the MQTT connection using TLS (MQTTS).</p>
+
+      <div id="mqttTlsFields" style="display: none;">
+        <div class="setting-container">
+          <label for="mqttSkipCertVal" style="margin-bottom: 0;">Skip Certificate Validation (Insecure)</label>
+          <label class="switch">
+            <input type="checkbox" id="mqttSkipCertVal" name="mqttSkipCertVal">
+            <span class="slider round"></span>
+          </label>
+        </div>
+        <p class="setting-explainer">Bypass verification of the broker's TLS certificate. Useful for self-signed certificates.</p>
+
+        <div id="mqttCaGroup">
+          <label for="mqttCa">MQTT Root CA Certificate (PEM):</label>
+          <textarea id="mqttCa" name="mqttCa" placeholder="-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"></textarea>
         </div>
       </div>
     </div>
@@ -788,6 +838,14 @@
         document.getElementById('callbackUrl').value = data.callbackUrl || '';
         document.getElementById('autolock').checked = data.autolock || false;
         document.getElementById('oneTimeOpening').checked = data.oneTimeOpening || false;
+        document.getElementById('mqttUseTls').checked = data.mqttUseTls || false;
+        document.getElementById('mqttSkipCertVal').checked = data.mqttSkipCertVal || false;
+        document.getElementById('callbackSkipCertVal').checked = data.callbackSkipCertVal || false;
+        document.getElementById('mqttCa').value = data.mqttCa || '';
+        document.getElementById('callbackCa').value = data.callbackCa || '';
+
+        updateCallbackTlsVisibility();
+        updateMqttTlsVisibility();
 
         const ownerCodes = JSON.parse(data.ownerCodes || '[]');
         ownerCodes.forEach(code => createCodeEntry('owner', code.label, code.code));
@@ -903,6 +961,48 @@
   document.getElementById('dutyCycleClose').addEventListener('input', function(e) {
     document.getElementById('dutyCycleCloseValue').value = e.target.value;
   });
+
+  function updateCallbackTlsVisibility() {
+    const url = document.getElementById('callbackUrl').value;
+    const tlsSection = document.getElementById('callbackTlsSection');
+    if (url.toLowerCase().startsWith('https://')) {
+      tlsSection.style.display = 'block';
+      const skipCert = document.getElementById('callbackSkipCertVal').checked;
+      document.getElementById('callbackCaGroup').style.display = skipCert ? 'none' : 'block';
+    } else {
+      tlsSection.style.display = 'none';
+    }
+  }
+
+  function updateMqttTlsVisibility() {
+    const useTls = document.getElementById('mqttUseTls').checked;
+    const tlsFields = document.getElementById('mqttTlsFields');
+    if (useTls) {
+      tlsFields.style.display = 'block';
+      const skipCert = document.getElementById('mqttSkipCertVal').checked;
+      document.getElementById('mqttCaGroup').style.display = skipCert ? 'none' : 'block';
+    } else {
+      tlsFields.style.display = 'none';
+    }
+  }
+
+  document.getElementById('callbackUrl').addEventListener('input', updateCallbackTlsVisibility);
+  document.getElementById('callbackSkipCertVal').addEventListener('change', updateCallbackTlsVisibility);
+
+  document.getElementById('mqttUseTls').addEventListener('change', function(e) {
+    const portInput = document.getElementById('mqttPort');
+    if (e.target.checked) {
+      if (portInput.value === '1883') {
+        portInput.value = '8883';
+      }
+    } else {
+      if (portInput.value === '8883') {
+        portInput.value = '1883';
+      }
+    }
+    updateMqttTlsVisibility();
+  });
+  document.getElementById('mqttSkipCertVal').addEventListener('change', updateMqttTlsVisibility);
 
   loadConfig();
 

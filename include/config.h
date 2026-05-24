@@ -19,6 +19,9 @@ struct Config {
   bool autolock;
   String oneTimeCodes;
   bool oneTimeOpening;
+  bool mqttUseTls;
+  bool mqttSkipCertVal;
+  bool callbackSkipCertVal;
 };
 
 const char* const PREFERENCES_NAMESPACE = "mailbox";
@@ -38,5 +41,8 @@ const char* const AUTOLOCK_KEY = "autolock";
 const char* const ONE_TIME_CODES_KEY = "oneTimeCodes";
 const char* const ONE_TIME_OPENING_KEY = "oneTimeOpen";
 const char* const DELIVERY_BLOCKED_KEY = "delBlocked";
+const char* const MQTT_USE_TLS_KEY = "mqttUseTls";
+const char* const MQTT_SKIP_CERT_VAL_KEY = "mqttSkipCert";
+const char* const CALLBACK_SKIP_CERT_VAL_KEY = "cbSkipCert";
 
 #endif
