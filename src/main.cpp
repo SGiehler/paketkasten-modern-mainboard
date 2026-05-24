@@ -17,7 +17,7 @@
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
-#include <WiFiClientSecure.h>
+#include <NetworkClientSecure.h>
 
 // Global configurations
 int debounceDelay = 1; // in ms
@@ -202,7 +202,7 @@ void triggerCallback(const char* compartment) {
     bool beginSuccess = false;
 
     if (url.startsWith("https://")) {
-      WiFiClientSecure client;
+      NetworkClientSecure client;
       if (config.callbackSkipCertVal) {
         Serial.println("HTTPS Callback: Skipping certificate validation (Insecure)");
         client.setInsecure();
