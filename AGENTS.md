@@ -4,20 +4,20 @@ Welcome! If you are a new AI coding agent assigned to work on the Paketkasten Re
 
 ## 🔑 Crucial Hardware & Firmware Documents
 
-1. **[Motor Steering & Sensor Insights](file:///c:/Users/Gila/dev/Paketkasten/Paketkasten/doc/motor_steering_insights.md)**: 
+1. **[Motor Steering & Sensor Insights](doc/motor_steering_insights.md)**: 
    * **Location**: `doc/motor_steering_insights.md`
-   * **Why you must read this**: This is the single most critical document detailing the Hall-effect sensor specifications (Honeywell SL353HT), high-frequency motor noise filtering, IRAM interrupt constraints (preventing Core 1 cache-miss crashes), and the zero-blanking-window edge detection logic. **Read this before modifying any logic in [SwitchManager.cpp](file:///c:/Users/Gila/dev/Paketkasten/Paketkasten/src/SwitchManager.cpp) or [main.cpp](file:///c:/Users/Gila/dev/Paketkasten/Paketkasten/src/main.cpp).**
+   * **Why you must read this**: This is the single most critical document detailing the Hall-effect sensor specifications (Honeywell SL353HT), high-frequency motor noise filtering, IRAM interrupt constraints (preventing Core 1 cache-miss crashes), and the zero-blanking-window edge detection logic. **Read this before modifying any logic in [SwitchManager.cpp](src/SwitchManager.cpp) or [main.cpp](src/main.cpp).**
 
-2. **[Wiegand Hardware Guide](file:///c:/Users/Gila/dev/Paketkasten/Paketkasten/wiegand-hardware.md)**:
+2. **[Wiegand Hardware Guide](wiegand-hardware.md)**:
    * **Location**: `wiegand-hardware.md`
    * **Why you must read this**: Lists tested Wiegand-compatible keypad hardware (e.g. Gelikom BP3) and provides hardware integration tips (such as how to bypass the physical photosensor sabotage alarm).
 
 ## 🛠️ Main Source Files
 
-* **State Management**: [state.h](file:///c:/Users/Gila/dev/Paketkasten/Paketkasten/include/state.h) / [state.cpp](file:///c:/Users/Gila/dev/Paketkasten/Paketkasten/src/state.cpp) - Houses state variables. *Note: Inter-task and ISR-shared variables are marked `volatile`.*
-* **Limit Switch Control**: [SwitchManager.h](file:///c:/Users/Gila/dev/Paketkasten/Paketkasten/include/SwitchManager.h) / [SwitchManager.cpp](file:///c:/Users/Gila/dev/Paketkasten/Paketkasten/src/SwitchManager.cpp) - Configures switch pull-ups, manages IRAM-based interrupts, and performs high-speed digital debounce filtering.
-* **Motor Control**: [MotorController.h](file:///c:/Users/Gila/dev/Paketkasten/Paketkasten/include/MotorController.h) / [MotorController.cpp](file:///c:/Users/Gila/dev/Paketkasten/Paketkasten/src/MotorController.cpp) - Controls H-bridge pin levels for forward/reverse/braking.
-* **Core Application Task & Cooldowns**: [main.cpp](file:///c:/Users/Gila/dev/Paketkasten/Paketkasten/src/main.cpp) - App task pinned to Core 1 running switch manager updates, motor controller ticks, autolock timing cooldowns, and Wiegand re-attachment delays to filter inductive motor spikes.
+* **State Management**: [state.h](include/state.h) / [state.cpp](src/state.cpp) - Houses state variables. *Note: Inter-task and ISR-shared variables are marked `volatile`.*
+* **Limit Switch Control**: [SwitchManager.h](include/SwitchManager.h) / [SwitchManager.cpp](src/SwitchManager.cpp) - Configures switch pull-ups, manages IRAM-based interrupts, and performs high-speed digital debounce filtering.
+* **Motor Control**: [MotorController.h](include/MotorController.h) / [MotorController.cpp](src/MotorController.cpp) - Controls H-bridge pin levels for forward/reverse/braking.
+* **Core Application Task & Cooldowns**: [main.cpp](src/main.cpp) - App task pinned to Core 1 running switch manager updates, motor controller ticks, autolock timing cooldowns, and Wiegand re-attachment delays to filter inductive motor spikes.
 
 ## ⚠️ Essential Development Commandments
 

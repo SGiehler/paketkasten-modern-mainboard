@@ -56,6 +56,6 @@ During development, several critical hardware-software integration conflicts wer
 ---
 
 ## 4. Key Rules for Future Modifications
-- **Do not use non-IRAM functions in ISRs**: Any helper function called inside `closedSwitchISR()`, `parcelSwitchISR()`, or `mailSwitchISR()` must be declared with `IRAM_ATTR`. Never call standard ESP-IDF driver functions unless they are explicitly mapped to IRAM in `sdkconfig`.
+- **Do not use non-IRAM functions in ISRs**: Any helper function called inside `closedSwitchISR()`, `parcelSwitchISR()`, or `mailSwitchISR()` (such as pin-checking functions) [must](../src/SwitchManager.cpp) have the `IRAM_ATTR` attribute. Never call standard ESP-IDF driver functions unless they are explicitly mapped to IRAM in `sdkconfig`.
 - **Do not introduce time-based startup blanking windows**: The travel distance between `Closed` and `Parcel` is mechanically very short. Any time-based masking will cause overshoots on fast runs. Always rely on high-speed pin sampling (`ets_delay_us`) for noise filtering instead.
 - **Maintain the Autolock Cooldown**: Always ensure that the autolock logic gives the `Bounce2` debouncer enough time to update its state after an ISR-driven state change.
