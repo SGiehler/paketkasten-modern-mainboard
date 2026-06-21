@@ -108,7 +108,7 @@ void MqttManager::handleQueue() {
 
 void MqttManager::update() {
     Config& config = configManager.getConfig();
-    if (config.mqttServer != "") {
+    if (config.mqttServer != "" && _netClient != nullptr) {
         _mqttClient.loop();
         if (!_mqttClient.connected()) {
             reconnect();
