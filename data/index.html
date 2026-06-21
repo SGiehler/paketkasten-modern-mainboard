@@ -650,6 +650,25 @@
       <p class="setting-explainer">Restricts subsequent deliveries until the owner opens the mailbox.</p>
     </div>
 
+    <div class="box">
+      <h2>Backup & Restore</h2>
+      <p class="setting-explainer">Export settings to a local JSON file or import settings from a previously saved backup. Note: WiFi and MQTT passwords are not included in the export for security reasons.</p>
+      <div style="display: flex; gap: 15px; margin-bottom: 10px;">
+        <button type="button" class="btn btn-primary icon-btn" onclick="exportSettings()" style="margin-top: 0; flex: 1;">
+            <span class="icon">📥</span>
+            <span class="separator"></span>
+            <span class="text">Export Settings</span>
+        </button>
+        <button type="button" class="btn btn-primary icon-btn" onclick="triggerImportSettings()" style="margin-top: 0; flex: 1;">
+            <span class="icon">📤</span>
+            <span class="separator"></span>
+            <span class="text">Import Settings</span>
+        </button>
+      </div>
+      <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importSettings(event)">
+      <div id="importStatus" style="margin-top: 10px; font-weight: bold; display: none; text-align: center; padding: 10px; border-radius: 4px; border: 1px solid var(--light-border); background-color: var(--light-bg);" class="calibration-status-box"></div>
+    </div>
+
     <div class="box" style="margin-bottom: 0;">
       <button type="submit" class="btn btn-primary icon-btn">
           <span class="icon">💾</span>
@@ -1206,6 +1225,141 @@
     document.getElementById('ssid').value = ssid;
     document.getElementById('password').focus();
     document.getElementById('wifiScanResult').style.display = 'none';
+  }
+
+  function exportSettings() {
+    fetch('/config')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to fetch settings');
+        }
+        return response.json();
+      })
+      .then(data => {
+        // Double check and remove any passwords if they somehow exist
+        delete data.password;
+        delete data.mqttPassword;
+        
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", "paketkasten-settings.json");
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+      })
+      .catch(error => {
+        console.error('Error exporting settings:', error);
+        alert('Error exporting settings: ' + error.message);
+      });
+  }
+
+  function triggerImportSettings() {
+    document.getElementById('importFile').click();
+  }
+
+  function importSettings(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const data = JSON.parse(e.target.result);
+        
+        if (!data || typeof data !== 'object') {
+          throw new Error('Invalid JSON format');
+        }
+
+        // SSID
+        if (data.ssid !== undefined) document.getElementById('ssid').value = data.ssid;
+        
+        // MQTT
+        if (data.mqttServer !== undefined) document.getElementById('mqttServer').value = data.mqttServer;
+        if (data.mqttPort !== undefined) document.getElementById('mqttPort').value = data.mqttPort;
+        if (data.mqttUser !== undefined) document.getElementById('mqttUser').value = data.mqttUser;
+        if (data.mqttUseTls !== undefined) document.getElementById('mqttUseTls').checked = data.mqttUseTls;
+        if (data.mqttSkipCertVal !== undefined) document.getElementById('mqttSkipCertVal').checked = data.mqttSkipCertVal;
+        if (data.mqttCa !== undefined) document.getElementById('mqttCa').value = data.mqttCa;
+
+        // Callback
+        if (data.callbackUrl !== undefined) document.getElementById('callbackUrl').value = data.callbackUrl;
+        if (data.callbackSkipCertVal !== undefined) document.getElementById('callbackSkipCertVal').checked = data.callbackSkipCertVal;
+        if (data.callbackCa !== undefined) document.getElementById('callbackCa').value = data.callbackCa;
+
+        // Duty cycles
+        if (data.dutyCycleOpen !== undefined) {
+          document.getElementById('dutyCycleOpen').value = data.dutyCycleOpen;
+          document.getElementById('dutyCycleOpenValue').value = data.dutyCycleOpen;
+        }
+        if (data.dutyCycleClose !== undefined) {
+          document.getElementById('dutyCycleClose').value = data.dutyCycleClose;
+          document.getElementById('dutyCycleCloseValue').value = data.dutyCycleClose;
+        }
+
+        // Melody
+        if (data.selectedMelody !== undefined) document.getElementById('melodySelect').value = data.selectedMelody;
+
+        // Settings checkboxes
+        if (data.autolock !== undefined) document.getElementById('autolock').checked = data.autolock;
+        if (data.oneTimeOpening !== undefined) document.getElementById('oneTimeOpening').checked = data.oneTimeOpening;
+
+        // Update UI visibilities
+        updateCallbackTlsVisibility();
+        updateMqttTlsVisibility();
+
+        // Clear existing Wiegand codes and load imported ones
+        document.getElementById('ownerCodes').innerHTML = '<label>Owner Codes:</label>';
+        if (data.ownerCodes) {
+          try {
+            const ownerCodes = JSON.parse(data.ownerCodes);
+            ownerCodes.forEach(code => createCodeEntry('owner', code.label, code.code));
+          } catch(e) {
+            console.error('Error parsing owner codes from import:', e);
+          }
+        }
+
+        document.getElementById('deliveryCodes').innerHTML = '<label>Delivery Codes:</label>';
+        if (data.deliveryCodes) {
+          try {
+            const deliveryCodes = JSON.parse(data.deliveryCodes);
+            deliveryCodes.forEach(code => createCodeEntry('delivery', code.label, code.code));
+          } catch(e) {
+            console.error('Error parsing delivery codes from import:', e);
+          }
+        }
+
+        // One-time codes import (if present)
+        if (data.oneTimeCodes) {
+          try {
+            const otcList = JSON.parse(data.oneTimeCodes);
+            currentOneTimeCodes = otcList;
+            saveOneTimeCodes(currentOneTimeCodes);
+          } catch(e) {
+            console.error('Error parsing one-time codes from import:', e);
+          }
+        }
+
+        // Show status message
+        const statusDiv = document.getElementById('importStatus');
+        statusDiv.style.display = 'block';
+        statusDiv.style.borderColor = 'var(--success-color)';
+        statusDiv.style.color = 'var(--success-color)';
+        statusDiv.textContent = 'Settings imported successfully! Please enter your WiFi/MQTT passwords if needed, then click "Save Configuration & Reboot" below.';
+        
+        // Reset file input value
+        event.target.value = '';
+
+      } catch (err) {
+        console.error('Failed to parse settings file:', err);
+        const statusDiv = document.getElementById('importStatus');
+        statusDiv.style.display = 'block';
+        statusDiv.style.borderColor = 'var(--danger-color)';
+        statusDiv.style.color = 'var(--danger-color)';
+        statusDiv.textContent = 'Error parsing settings file: ' + err.message;
+      }
+    };
+    reader.readAsText(file);
   }
 </script>
 </body>
