@@ -81,7 +81,7 @@ Prototyp in Aktion
 
 ## Bezug
 
-Ich habe während der Entwicklung ein paar mehr Platinen und Komponenten bestellt. Bei Interesse meldet euch gerne:
+Aktuell habe ich keine Platinen, führe aber eine Warteliste für ein künftiges DIY Kit. Bei Interesse meldet euch gerne:
 
 paketkasten[at]codestash.de
 
