@@ -3,6 +3,7 @@
 #include "MelodyPlayer.h"
 #include "SwitchManager.h"
 #include "state.h"
+#include "MotorDriveProfile.h"
 #include <WiFi.h>
 #include <FS.h>
 #include <LittleFS.h>
@@ -115,6 +116,8 @@ void MailboxNetworkManager::setupWebServer() {
         doc["deliveryCodes"] = config.deliveryCodes;
         doc["dutyCycleOpen"] = config.dutyCycleOpen;
         doc["dutyCycleClose"] = config.dutyCycleClose;
+        doc["motorMode"] = config.motorMode;
+        doc["motorKickMs"] = config.motorKickMs;
         doc["selectedMelody"] = config.selectedMelody;
         doc["callbackUrl"] = config.callbackUrl;
         doc["autolock"] = config.autolock;
@@ -165,8 +168,14 @@ void MailboxNetworkManager::setupWebServer() {
         if (request->hasArg("mqttPassword") && request->arg("mqttPassword") != "") {
             config.mqttPassword = request->arg("mqttPassword");
         }
-        config.dutyCycleOpen = request->arg("dutyCycleOpen").toInt();
-        config.dutyCycleClose = request->arg("dutyCycleClose").toInt();
+        config.dutyCycleOpen = constrain(request->arg("dutyCycleOpen").toInt(), MotorProfile::OPEN_DUTY_MIN, MotorProfile::OPEN_DUTY_MAX);
+        config.dutyCycleClose = constrain(request->arg("dutyCycleClose").toInt(), MotorProfile::CLOSE_DUTY_MIN, MotorProfile::CLOSE_DUTY_MAX);
+        if (request->hasArg("motorMode")) {
+            config.motorMode = MotorProfile::sanitizeMode(request->arg("motorMode").toInt());
+        }
+        if (request->hasArg("motorKickMs")) {
+            config.motorKickMs = constrain(request->arg("motorKickMs").toInt(), MotorProfile::KICK_MS_MIN, MotorProfile::KICK_MS_MAX);
+        }
         config.selectedMelody = request->arg("selectedMelody");
         config.callbackUrl = request->arg("callbackUrl");
         config.autolock = request->hasArg("autolock");
@@ -251,6 +260,10 @@ void MailboxNetworkManager::setupWebServer() {
         doc["calibration_active"] = calibrationActive;
         doc["calibration_step"] = (int)calibrationStep;
         doc["calibration_candidate"] = (int)calibrationCandidateDuty;
+        doc["last_stroke_ms"] = (unsigned long)lastStrokeMs;
+        doc["last_stroke_from"] = mailboxStateName(lastStrokeFrom);
+        doc["last_stroke_to"] = mailboxStateName(lastStrokeTo);
+        doc["last_stroke_escalated"] = (bool)lastStrokeEscalated;
 
         if (cachedWifiJson != "") {
             doc["wifi_networks"] = serialized(cachedWifiJson);
@@ -316,8 +329,9 @@ void MailboxNetworkManager::setupWebServer() {
     _server.on("/calibrate", HTTP_POST, [](AsyncWebServerRequest *request){
         if (calibrationActive) {
             request->send(400, "text/plain", "Calibration already in progress");
+        } else if (!startCalibration()) {
+            request->send(400, "text/plain", "Auto calibration is not available in step (inching) mode");
         } else {
-            startCalibration();
             request->send(200, "text/plain", "OK");
         }
     });

@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include "state.h"
+#include "MotorDriveProfile.h"
 
 class MotorController {
 public:
@@ -14,6 +15,11 @@ private:
     int _pin1;
     int _pin2;
     MailboxState _lastMotorState;
+    bool _escalated;
+
+    void apply(const MotorOutput& out, bool opening);
+    void brakeNow();
+    void recordStroke(MailboxState from, MailboxState to);
 };
 
 extern MotorController motorController;

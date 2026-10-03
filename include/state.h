@@ -28,11 +28,8 @@ extern const int WIEGAND_D0_PIN;
 extern const int WIEGAND_D1_PIN;
 extern const int BUZZER_PIN;
 
-// Constants
+// Constants (motor drive profile constants live in MotorDriveProfile.h)
 extern const int PWM_FREQ;
-extern const int FULL_POWER_MS;
-extern const int FULL_POWER_DUTY_CYCLE;
-extern const int RAMP_DOWN_MS;
 extern const int OPENING_DELAY_MS;
 extern const char* SOFTAP_PASSWORD;
 
@@ -49,6 +46,16 @@ extern volatile unsigned long lockedStateEnterTime;
 extern volatile bool wiegandAttached;
 extern volatile bool shouldRestart;
 
+// App task handle: limit switch ISRs notify it so the motor is braked immediately
+// (the ISR itself cannot brake: the motor pins are owned by the LEDC peripheral).
+extern TaskHandle_t appTaskHandle;
+
+// Diagnostics of the last motor movement (start of movement until end/error state)
+extern volatile unsigned long lastStrokeMs;
+extern volatile MailboxState lastStrokeFrom;
+extern volatile MailboxState lastStrokeTo;
+extern volatile bool lastStrokeEscalated; // true: configured duty was too low, stall escalation kicked in
+
 // Calibration variables
 extern volatile bool calibrationActive;
 extern volatile int calibrationStep;
@@ -61,11 +68,12 @@ extern std::vector<String> mqttMessageQueue;
 extern SemaphoreHandle_t mqttQueueMutex;
 
 // Global orchestrator functions
+const char* mailboxStateName(MailboxState state);
 String getMailboxStateString();
 void requestParcelOpening(const char* requester);
 void requestMailOpening(const char* requester);
 void publishState();
-void startCalibration();
+bool startCalibration(); // false if the selected drive mode does not support calibration
 void updateCalibration();
 
 #endif

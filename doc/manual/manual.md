@@ -47,11 +47,23 @@ Die Status-LEDs (Grün und Rot) zeigen den aktuellen Zustand des Systems an:
 | **Öffnet oder Verriegelt (OPENING_TO_PARCEL / OPENING_TO_MAIL / LOCKING)** | ⚫       | 🔴       |
 | **Motorfehler (MOTOR_ERROR)**                     | 🟢        | 🔴       |
 
-# Duty Cycle
+# Motor-Geschwindigkeit (Duty Cycle)
 
-Der Duty Cycle beschreibt das Verhältnis der Einschaltdauer eines Motors zur gesamten Betriebszeit und beeinflusst direkt die Geschwindigkeit des Motors. Ist der Duty Cycle zu hoch, kann der Paketkasten blockieren. Ist er zu niedrig, reicht das initiale Drehmoment möglicherweise nicht aus, um den Kasten zu bewegen. Es ist wichtig, den Duty Cycle korrekt einzustellen, um einen reibungslosen Betrieb zu gewährleisten. 
+Der Duty Cycle beschreibt das Verhältnis der Einschaltdauer eines Motors zur gesamten Betriebszeit und beeinflusst direkt die Geschwindigkeit des Motors. Ist der Duty Cycle zu hoch, kann der Paketkasten blockieren oder über den Sensor hinausschießen. Ist er zu niedrig, reicht das initiale Drehmoment möglicherweise nicht aus, um den Kasten zu bewegen.
 
-Geht der Kasten nicht auf oder zu, sollte dieser Wert in 5er schritten erhöht werden. Sollte der Kasten blockieren muss man leider die Elektronik wieder ausbauen und den Motor einmal herausnehmen, da er selbstständig aus der Blockade nicht wieder heraus kommt. In diesem Fall sollte der Duty Cycle reduziert werden.
+In der WebUI gibt es unter "Motor Speed" einen **Drive Mode**, der für Öffnen **und** Schließen gilt:
+
+| Modus | Verhalten |
+|-------|-----------|
+| **Original** (Standard) | Wie die bisherige Firmware: 100 ms volle Kraft, danach der eingestellte Duty Cycle. Die Bewegung ist meist schon innerhalb dieser 100 ms fertig, die Schieberegler wirken daher kaum. |
+| **Slow – smooth** | Kurzer Start-Kick, danach gleichmäßig langsame Fahrt mit dem eingestellten Duty Cycle. Empfohlen, wenn der Kasten über das Ziel hinausschießt. |
+| **Slow – steps** | Kurzer Start-Kick, danach Bewegung in kleinen Schritten. Der Schieberegler bestimmt die Pause zwischen den Schritten. Auto-Kalibrierung ist hier nicht verfügbar. |
+
+**Start Kick** (nur in den langsamen Modi): kurzer Impuls mit voller Kraft, um das Schneckengetriebe aus dem Stillstand loszubrechen. Brummt der Motor, ohne loszulaufen, den Wert erhöhen; ist die erste Bewegung noch zu schnell, verringern.
+
+**Einstellen:** Nach jeder Bewegung zeigt die WebUI unter "Last movement" an, wie lange die Fahrt gedauert hat. Zeigt sie den Hinweis *stall boost was needed*, war der Duty Cycle zu niedrig: Die Firmware hat nach 1,5 s die Kraft schrittweise erhöht, damit der Kasten trotzdem sicher öffnet bzw. verriegelt. In diesem Fall den Duty Cycle erhöhen.
+
+Geht der Kasten nicht auf oder zu, sollte dieser Wert in 5er-Schritten erhöht werden. Sollte der Kasten blockieren, muss man leider die Elektronik wieder ausbauen und den Motor einmal herausnehmen, da er selbstständig aus der Blockade nicht wieder heraus kommt. In diesem Fall sollte der Duty Cycle reduziert bzw. ein langsamer Modus gewählt werden.
 
 ![Duty Cycle Diagramm](duty-cycle.png)
 

@@ -1,4 +1,5 @@
 #include "ConfigManager.h"
+#include "MotorDriveProfile.h"
 #include "state.h"
 #include <Preferences.h>
 #include <ArduinoJson.h>
@@ -22,8 +23,19 @@ void ConfigManager::load() {
     _config.mqttPort = preferences.getInt(MQTT_PORT_KEY, 1883);
     _config.mqttUser = preferences.getString(MQTT_USER_KEY, "");
     _config.mqttPassword = preferences.getString(MQTT_PASSWORD_KEY, "");
-    _config.dutyCycleOpen = preferences.getInt(DUTY_CYCLE_OPEN_KEY, 120);
-    _config.dutyCycleClose = preferences.getInt(DUTY_CYCLE_CLOSE_KEY, 20);
+    _config.dutyCycleOpen = preferences.getInt(DUTY_CYCLE_OPEN_KEY, MotorProfile::OPEN_DUTY_DEFAULT);
+    if (_config.dutyCycleOpen < MotorProfile::OPEN_DUTY_MIN || _config.dutyCycleOpen > MotorProfile::OPEN_DUTY_MAX) {
+        _config.dutyCycleOpen = MotorProfile::OPEN_DUTY_DEFAULT;
+    }
+    _config.dutyCycleClose = preferences.getInt(DUTY_CYCLE_CLOSE_KEY, MotorProfile::CLOSE_DUTY_DEFAULT);
+    if (_config.dutyCycleClose < MotorProfile::CLOSE_DUTY_MIN || _config.dutyCycleClose > MotorProfile::CLOSE_DUTY_MAX) {
+        _config.dutyCycleClose = MotorProfile::CLOSE_DUTY_DEFAULT;
+    }
+    _config.motorMode = MotorProfile::sanitizeMode(preferences.getInt(MOTOR_MODE_KEY, MotorProfile::DEFAULT_MODE));
+    _config.motorKickMs = preferences.getInt(MOTOR_KICK_MS_KEY, MotorProfile::KICK_MS_DEFAULT);
+    if (_config.motorKickMs < MotorProfile::KICK_MS_MIN || _config.motorKickMs > MotorProfile::KICK_MS_MAX) {
+        _config.motorKickMs = MotorProfile::KICK_MS_DEFAULT;
+    }
     _config.selectedMelody = preferences.getString(SELECTED_MELODY_KEY, "NOKIA_TUNE");
     _config.callbackUrl = preferences.getString(CALLBACK_URL_KEY, "");
     _config.autolock = preferences.getBool(AUTOLOCK_KEY, true);
@@ -51,6 +63,8 @@ void ConfigManager::save() {
     preferences.putString(MQTT_PASSWORD_KEY, _config.mqttPassword);
     preferences.putInt(DUTY_CYCLE_OPEN_KEY, _config.dutyCycleOpen);
     preferences.putInt(DUTY_CYCLE_CLOSE_KEY, _config.dutyCycleClose);
+    preferences.putInt(MOTOR_MODE_KEY, _config.motorMode);
+    preferences.putInt(MOTOR_KICK_MS_KEY, _config.motorKickMs);
     preferences.putString(SELECTED_MELODY_KEY, _config.selectedMelody);
     preferences.putString(CALLBACK_URL_KEY, _config.callbackUrl);
     preferences.putBool(AUTOLOCK_KEY, _config.autolock);

@@ -17,6 +17,21 @@ bool IRAM_ATTR isPinPressedISR(int pin, int pressedState) {
     return true;
 }
 
+// Wake the app task so MotorController::update() brakes within microseconds instead of at the
+// next 1 ms tick. The ISR cannot brake itself: analogWrite() routes the motor pins to the LEDC
+// peripheral via the GPIO matrix, so digitalWrite() from here only sets the (unused) GPIO output
+// register and has no effect on the pins. vTaskNotifyGiveFromISR is IRAM-resident
+// (CONFIG_FREERTOS_PLACE_FUNCTIONS_INTO_FLASH is not set in the Arduino core).
+static void IRAM_ATTR wakeAppTaskFromISR() {
+    if (appTaskHandle != nullptr) {
+        BaseType_t higherPriorityTaskWoken = pdFALSE;
+        vTaskNotifyGiveFromISR(appTaskHandle, &higherPriorityTaskWoken);
+        if (higherPriorityTaskWoken == pdTRUE) {
+            portYIELD_FROM_ISR();
+        }
+    }
+}
+
 void IRAM_ATTR closedSwitchISR() {
     int pressedState = _gInvertState ? HIGH : LOW;
     if (isPinPressedISR(CLOSED_SWITCH_PIN, pressedState)) {
@@ -24,8 +39,7 @@ void IRAM_ATTR closedSwitchISR() {
             currentState = LOCKED;
             lockedStateEnterTime = millis();
             wiegandAttached = false;
-            digitalWrite(MOTOR_PIN_1, HIGH);
-            digitalWrite(MOTOR_PIN_2, HIGH);
+            wakeAppTaskFromISR();
         }
     }
 }
@@ -36,8 +50,7 @@ void IRAM_ATTR parcelSwitchISR() {
         if (currentState == OPENING_TO_PARCEL) {
             currentState = PARCEL_OPEN;
             openStateEnterTime = millis();
-            digitalWrite(MOTOR_PIN_1, HIGH);
-            digitalWrite(MOTOR_PIN_2, HIGH);
+            wakeAppTaskFromISR();
         }
     }
 }
@@ -45,16 +58,10 @@ void IRAM_ATTR parcelSwitchISR() {
 void IRAM_ATTR mailSwitchISR() {
     int pressedState = _gInvertState ? HIGH : LOW;
     if (isPinPressedISR(MAIL_SWITCH_PIN, pressedState)) {
-        if (currentState == OPENING_TO_MAIL) {
+        if (currentState == OPENING_TO_MAIL || currentState == OPENING_TO_PARCEL) {
             currentState = MAIL_OPEN;
             openStateEnterTime = millis();
-            digitalWrite(MOTOR_PIN_1, HIGH);
-            digitalWrite(MOTOR_PIN_2, HIGH);
-        } else if (currentState == OPENING_TO_PARCEL) {
-            currentState = MAIL_OPEN;
-            openStateEnterTime = millis();
-            digitalWrite(MOTOR_PIN_1, HIGH);
-            digitalWrite(MOTOR_PIN_2, HIGH);
+            wakeAppTaskFromISR();
         }
     }
 }

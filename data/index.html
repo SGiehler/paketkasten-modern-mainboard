@@ -593,12 +593,38 @@
     </div>
 
     <div class="box">
-      <h2>Duty Cycles</h2>
-      <div class="label">Open: <output for="dutyCycleOpen" id="dutyCycleOpenValue"></output></div>
-      <input type="range" id="dutyCycleOpen" name="dutyCycleOpen" min="20" max="160">
+      <h2>Motor Speed</h2>
+      <p class="setting-explainer" style="margin-top: 0; margin-bottom: 15px;">The drive mode applies to opening and closing. Slow modes reduce overshooting past the sensors. Changes take effect after saving (the device restarts).</p>
 
-      <div class="label">Close: <output for="dutyCycleClose" id="dutyCycleCloseValue"></output></div>
-      <input type="range" id="dutyCycleClose" name="dutyCycleClose" min="20" max="100">
+      <label for="motorMode">Drive Mode:</label>
+      <select id="motorMode" name="motorMode">
+        <option value="0">Original (fast, 100 ms full-power boost)</option>
+        <option value="1">Slow &ndash; smooth (slow-decay PWM)</option>
+        <option value="2">Slow &ndash; steps (pulse/pause)</option>
+      </select>
+      <p class="setting-explainer" id="motorModeExplainer"></p>
+
+      <div id="motorKickGroup">
+        <div class="label">Start Kick: <output for="motorKickMs" id="motorKickMsValue">10</output> ms</div>
+        <input type="range" id="motorKickMs" name="motorKickMs" min="0" max="40" value="10">
+        <p class="setting-explainer" style="margin-top: -10px;">Short full-power pulse to break the worm gear loose. Increase if the motor hums but does not start; decrease if the first movement is still too fast.</p>
+      </div>
+
+      <div class="label">Opening Speed: <output for="dutyCycleOpen" id="dutyCycleOpenValue">120</output></div>
+      <input type="range" id="dutyCycleOpen" name="dutyCycleOpen" min="20" max="160" value="120">
+      <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--off-color); margin-top: -10px; margin-bottom: 15px;">
+        <span>Slower (20)</span>
+        <span>Faster (160)</span>
+      </div>
+
+      <div class="label">Closing Speed: <output for="dutyCycleClose" id="dutyCycleCloseValue">20</output></div>
+      <input type="range" id="dutyCycleClose" name="dutyCycleClose" min="20" max="100" value="20">
+      <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--off-color); margin-top: -10px; margin-bottom: 15px;">
+        <span>Slower (20)</span>
+        <span>Faster (100)</span>
+      </div>
+
+      <p class="setting-explainer">Last movement: <strong id="lastStroke">-</strong></p>
 
       <button type="button" id="calibrateBtn" class="btn btn-primary icon-btn" style="margin-top: 15px;" onclick="startCalibration()">
           <span class="icon">⚙️</span>
@@ -697,7 +723,7 @@
       fetch('/calibrate', { method: 'POST' })
       .then(response => {
         if (!response.ok) {
-          alert('Failed to start calibration');
+          response.text().then(text => alert('Failed to start calibration: ' + text));
         }
       })
       .catch(error => console.error('Error starting calibration:', error));
@@ -735,6 +761,15 @@
         updateSwitchStatus('closedSwitch', data.closed_switch);
         updateSwitchStatus('parcelSwitch', data.parcel_switch);
         updateSwitchStatus('mailSwitch', data.mail_switch);
+
+        const lastStrokeEl = document.getElementById('lastStroke');
+        if (lastStrokeEl && data.last_stroke_ms) {
+          let strokeText = `${data.last_stroke_from} \u2192 ${data.last_stroke_to} in ${data.last_stroke_ms} ms`;
+          if (data.last_stroke_escalated) {
+            strokeText += ' (speed too low, stall boost was needed)';
+          }
+          lastStrokeEl.textContent = strokeText;
+        }
 
         const dbElement = document.getElementById('deliveryBlocked');
         const dbText = document.getElementById('deliveryBlockedText');
@@ -951,6 +986,10 @@
         document.getElementById('dutyCycleOpenValue').value = data.dutyCycleOpen || 120;
         document.getElementById('dutyCycleClose').value = data.dutyCycleClose || 20;
         document.getElementById('dutyCycleCloseValue').value = data.dutyCycleClose || 20;
+        document.getElementById('motorMode').value = String(data.motorMode ?? 0);
+        document.getElementById('motorKickMs').value = data.motorKickMs ?? 10;
+        document.getElementById('motorKickMsValue').value = data.motorKickMs ?? 10;
+        updateMotorModeUi();
         document.getElementById('melodySelect').value = data.selectedMelody || 'NOKIA_TUNE'; // Default to Nokia Tune
         document.getElementById('callbackUrl').value = data.callbackUrl || '';
         document.getElementById('autolock').checked = data.autolock || false;
@@ -1078,6 +1117,27 @@
   document.getElementById('dutyCycleClose').addEventListener('input', function(e) {
     document.getElementById('dutyCycleCloseValue').value = e.target.value;
   });
+
+  document.getElementById('motorKickMs').addEventListener('input', function(e) {
+    document.getElementById('motorKickMsValue').value = e.target.value;
+  });
+
+  const MOTOR_MODE_TEXT = {
+    '0': 'Original behaviour: full power for the first 100 ms. The stroke usually ends inside this boost, so the speed sliders have little effect and the arm can overshoot.',
+    '1': 'Short start kick, then continuous PWM that brakes instead of coasting between pulses. Gives a linear, quiet low speed. Start here.',
+    '2': 'Short start kick, then the motor moves in small steps (15 ms pulse, braked pause). The speed slider sets the pause length. Auto calibration is not available in this mode.'
+  };
+
+  function updateMotorModeUi() {
+    const mode = document.getElementById('motorMode').value;
+    document.getElementById('motorModeExplainer').textContent = MOTOR_MODE_TEXT[mode] || '';
+    document.getElementById('motorKickGroup').style.display = (mode === '0') ? 'none' : 'block';
+    const calibrateBtn = document.getElementById('calibrateBtn');
+    if (calibrateBtn) calibrateBtn.title = (mode === '2') ? 'Not available in step mode' : '';
+  }
+
+  document.getElementById('motorMode').addEventListener('change', updateMotorModeUi);
+  updateMotorModeUi();
 
   function updateCallbackTlsVisibility() {
     const url = document.getElementById('callbackUrl').value;
@@ -1295,6 +1355,14 @@
         if (data.dutyCycleClose !== undefined) {
           document.getElementById('dutyCycleClose').value = data.dutyCycleClose;
           document.getElementById('dutyCycleCloseValue').value = data.dutyCycleClose;
+        }
+        if (data.motorMode !== undefined) {
+          document.getElementById('motorMode').value = String(data.motorMode);
+          updateMotorModeUi();
+        }
+        if (data.motorKickMs !== undefined) {
+          document.getElementById('motorKickMs').value = data.motorKickMs;
+          document.getElementById('motorKickMsValue').value = data.motorKickMs;
         }
 
         // Melody

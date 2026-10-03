@@ -74,7 +74,7 @@ void setup() {
     8192,             // Stack size
     NULL,
     1,                // Priority (same as default loop)
-    NULL,
+    &appTaskHandle,   // Limit switch ISRs notify this task to brake immediately
     1                 // Core 1 (APP_CPU)
   );
 
@@ -180,7 +180,8 @@ void appTask(void* param) {
       ESP.restart();
     }
 
-    vTaskDelay(pdMS_TO_TICKS(1)); // 1ms tick for responsive motor/switch control
+    // 1 ms tick for responsive motor/switch control; a limit switch ISR wakes us immediately.
+    ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(1));
   }
 }
 

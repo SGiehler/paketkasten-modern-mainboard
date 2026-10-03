@@ -1,4 +1,6 @@
 #include "state.h"
+#include "ConfigManager.h"
+#include "MotorDriveProfile.h"
 
 // Pin definitions
 const int MOTOR_PIN_1 = 33;
@@ -12,11 +14,7 @@ const int WIEGAND_D0_PIN = 27;
 const int WIEGAND_D1_PIN = 26;
 const int BUZZER_PIN = 21;
 
-// Constants
 const int PWM_FREQ = 1000;
-const int FULL_POWER_MS = 100;
-const int FULL_POWER_DUTY_CYCLE = 200;
-const int RAMP_DOWN_MS = 10;
 const int OPENING_DELAY_MS = 700;
 const char* SOFTAP_PASSWORD = "G67zC4OiB";
 
@@ -33,6 +31,13 @@ volatile unsigned long lockedStateEnterTime = 0;
 volatile bool wiegandAttached = true;
 volatile bool shouldRestart = false;
 
+TaskHandle_t appTaskHandle = nullptr;
+
+volatile unsigned long lastStrokeMs = 0;
+volatile MailboxState lastStrokeFrom = LOCKED;
+volatile MailboxState lastStrokeTo = LOCKED;
+volatile bool lastStrokeEscalated = false;
+
 // Calibration variables
 volatile bool calibrationActive = false;
 volatile int calibrationStep = 0;
@@ -44,8 +49,8 @@ int calibratedClose = 0;
 std::vector<String> mqttMessageQueue;
 SemaphoreHandle_t mqttQueueMutex = nullptr;
 
-String getMailboxStateString() {
-  switch (currentState) {
+const char* mailboxStateName(MailboxState state) {
+  switch (state) {
     case LOCKED: return "LOCKED";
     case PRE_OPENING_TO_PARCEL: return "PRE_OPENING_TO_PARCEL";
     case OPENING_TO_PARCEL: return "OPENING_TO_PARCEL";
@@ -59,7 +64,15 @@ String getMailboxStateString() {
   }
 }
 
-void startCalibration() {
+String getMailboxStateString() {
+  return mailboxStateName(currentState);
+}
+
+bool startCalibration() {
+    if (!MotorProfile::calibrationSupported(configManager.getConfig().motorMode)) {
+        Serial.println("[Calibration] Not available in inching mode (slider sets the pause, not a duty).");
+        return false;
+    }
     calibrationActive = true;
     calibrationStep = 1; // start with prep closing
     calibratedOpen = 0;
@@ -70,5 +83,6 @@ void startCalibration() {
         currentState = LOCKED;
     }
     Serial.println("[Calibration] Auto-calibration started!");
+    return true;
 }
 
