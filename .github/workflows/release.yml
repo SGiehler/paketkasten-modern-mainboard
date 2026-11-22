@@ -25,7 +25,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.9'
+        python-version: '3.12'
     - name: Install PlatformIO
       run: pip install -U platformio
     - name: Set UI version
@@ -63,6 +63,7 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
     steps:
+      - uses: actions/checkout@v4
       - name: Download firmware artifact
         uses: actions/download-artifact@v4
         with:
@@ -75,44 +76,26 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: complete-firmware
-      - name: Dump GitHub context
+      - name: Create GitHub Release with Release Notes
         env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-        run: echo "$GITHUB_CONTEXT"
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
-          draft: false
-          prerelease: false
-      - name: Upload Firmware Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./firmware.bin
-          asset_name: firmware-${{ github.ref_name }}.bin
-          asset_content_type: application/octet-stream
-      - name: Upload Filesystem Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./littlefs.bin
-          asset_name: littlefs-${{ github.ref_name }}.bin
-          asset_content_type: application/octet-stream
-      - name: Upload Complete Firmware Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./complete-firmware.bin
-          asset_name: complete-firmware-${{ github.ref_name }}.bin
-          asset_content_type: application/octet-stream
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.ref_name }}"
+          mv ./firmware.bin "./firmware-${TAG}.bin"
+          mv ./littlefs.bin "./littlefs-${TAG}.bin"
+          mv ./complete-firmware.bin "./complete-firmware-${TAG}.bin"
+          if [ -f RELEASE_NOTES.md ]; then
+            gh release create "${TAG}" \
+              "./firmware-${TAG}.bin" \
+              "./littlefs-${TAG}.bin" \
+              "./complete-firmware-${TAG}.bin" \
+              --title "Release ${TAG}" \
+              --notes-file RELEASE_NOTES.md
+          else
+            gh release create "${TAG}" \
+              "./firmware-${TAG}.bin" \
+              "./littlefs-${TAG}.bin" \
+              "./complete-firmware-${TAG}.bin" \
+              --title "Release ${TAG}" \
+              --generate-notes
+          fi
