@@ -16,7 +16,7 @@ enum MailboxState {
   MOTOR_ERROR
 };
 
-// Pins (extern declarations or definitions, let's keep definitions in src/state.cpp or main.cpp. Let's declare them as extern here so all drivers can access them.)
+// Pin definitions (defined in src/state.cpp)
 extern const int MOTOR_PIN_1;
 extern const int MOTOR_PIN_2;
 extern const int GREEN_LED_PIN;
@@ -36,15 +36,21 @@ extern const char* SOFTAP_PASSWORD;
 // Global shared variables
 extern volatile MailboxState currentState;
 extern volatile bool deliveryBlocked;
+extern volatile bool closedAlreadyReachedInCycle;
+extern volatile bool otaInProgress;
 extern char lastScannedWiegandId[20];
 extern char lastKeypadCode[20];
 extern char lastUsed[50];
 extern volatile unsigned long openStateEnterTime;
-extern unsigned long preOpeningStateEnterTime;
+extern volatile unsigned long preOpeningStateEnterTime;
 extern volatile unsigned long motorStartTime;
 extern volatile unsigned long lockedStateEnterTime;
-extern volatile bool wiegandAttached;
 extern volatile bool shouldRestart;
+extern volatile unsigned long restartRequestedAt;
+extern volatile unsigned long restartDelayMs;
+
+// Spinlock protecting atomic state transitions shared with limit switch ISRs and tasks
+extern portMUX_TYPE stateMux;
 
 // App task handle: limit switch ISRs notify it so the motor is braked immediately
 // (the ISR itself cannot brake: the motor pins are owned by the LEDC peripheral).
@@ -56,26 +62,20 @@ extern volatile MailboxState lastStrokeFrom;
 extern volatile MailboxState lastStrokeTo;
 extern volatile bool lastStrokeEscalated; // true: configured duty was too low, stall escalation kicked in
 
-// Calibration variables
-extern volatile bool calibrationActive;
-extern volatile int calibrationStep;
-extern volatile int calibrationCandidateDuty;
-extern volatile unsigned long calibrationStepTime;
-extern int calibratedOpen;
-extern int calibratedClose;
-
 extern std::vector<String> mqttMessageQueue;
 extern SemaphoreHandle_t mqttQueueMutex;
+extern QueueHandle_t httpCallbackQueue;
 
 // Global orchestrator functions
 const char* mailboxStateName(MailboxState state);
 String getMailboxStateString();
-void requestParcelOpening(const char* requester);
-void requestMailOpening(const char* requester);
+bool canAcceptOpenRequest();
+bool requestParcelOpening(const char* requester);
+bool requestMailOpening(const char* requester);
+bool requestLocking(const char* requester);
+bool resetMotorError(const char* requester);
+void requestRestart(unsigned long delayMs = 1000);
+void queueHttpCallback(const char* compartment);
 void publishState();
-bool startCalibration(); // false if the selected drive mode does not support calibration
-void updateCalibration();
 
 #endif
-
-

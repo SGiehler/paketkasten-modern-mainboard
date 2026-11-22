@@ -1,68 +1,74 @@
 #include "MqttManager.h"
 #include "ConfigManager.h"
+#include "TelemetryLog.h"
 #include "state.h"
 #include <LittleFS.h>
 
 MqttManager mqttManager;
 
 MqttManager::MqttManager() :
-    _netClient(nullptr)
+    _netClient(nullptr),
+    _lastReconnectAttempt(0),
+    _connected(false)
 {}
 
 MqttManager::~MqttManager() {
     if (_netClient != nullptr) {
         delete _netClient;
+        _netClient = nullptr;
     }
 }
 
 void MqttManager::begin(void (*callback)(char* topic, byte* payload, unsigned int length)) {
-    Config& config = configManager.getConfig();
-    if (config.mqttServer != "") {
-        Serial.print("Setting up MQTT server: ");
-        Serial.println(config.mqttServer);
+    Config config = configManager.getConfigCopy();
+    _mqttServer = config.mqttServer;
+    _mqttUser = config.mqttUser;
+    _mqttPassword = config.mqttPassword;
+    _caCert = "";
+    _connected = false;
 
+    if (_mqttServer.length() > 0) {
         if (_netClient != nullptr) {
             delete _netClient;
             _netClient = nullptr;
         }
 
         if (config.mqttUseTls) {
-            Serial.println("MQTT: Using TLS (Secure connection)");
             WiFiClientSecure* secureClient = new WiFiClientSecure();
             if (config.mqttSkipCertVal) {
-                Serial.println("MQTT: Skipping certificate validation (Insecure)");
+                telemetryLog.logf("MQTT", "Setup %s:%d (TLS, skip cert verify)", _mqttServer.c_str(), config.mqttPort);
                 secureClient->setInsecure();
             } else {
-                String caCert = "";
                 if (LittleFS.exists("/certs/mqtt_ca.pem")) {
                     File file = LittleFS.open("/certs/mqtt_ca.pem", "r");
                     if (file) {
-                        caCert = file.readString();
+                        _caCert = file.readString();
                         file.close();
                     }
                 }
-                if (caCert.length() > 0) {
-                    Serial.println("MQTT: Setting Root CA certificate");
-                    secureClient->setCACert(caCert.c_str());
+                if (_caCert.length() > 0) {
+                    telemetryLog.logf("MQTT", "Setup %s:%d (TLS + Root CA)", _mqttServer.c_str(), config.mqttPort);
+                    // _caCert is a class member so its buffer stays valid for the lifetime of secureClient
+                    secureClient->setCACert(_caCert.c_str());
                 } else {
-                    Serial.println("MQTT Warning: TLS requested but no CA certificate found. Falling back to insecure mode.");
+                    telemetryLog.logf("MQTT", "Setup %s:%d (TLS without CA -> insecure fallback)", _mqttServer.c_str(), config.mqttPort);
                     secureClient->setInsecure();
                 }
             }
             _netClient = secureClient;
         } else {
-            Serial.println("MQTT: Using standard TCP (Unencrypted connection)");
+            telemetryLog.logf("MQTT", "Setup %s:%d (TCP)", _mqttServer.c_str(), config.mqttPort);
             _netClient = new WiFiClient();
         }
 
         _mqttClient.setClient(*_netClient);
-        _mqttClient.setServer(config.mqttServer.c_str(), config.mqttPort);
+        _mqttClient.setServer(_mqttServer.c_str(), config.mqttPort);
         _mqttClient.setCallback(callback);
     }
 }
 
 bool MqttManager::isConnected() {
-    return _mqttClient.connected();
+    return _connected;
 }
 
 void MqttManager::publish(const char* topic, const char* payload) {
@@ -70,35 +76,42 @@ void MqttManager::publish(const char* topic, const char* payload) {
 }
 
 void MqttManager::reconnect() {
-    Config& config = configManager.getConfig();
-    long now = millis();
-    static long lastReconnectAttempt = 0;
-    if (now - lastReconnectAttempt > 5000) {
-        lastReconnectAttempt = now;
-        Serial.println("Attempting MQTT connection...");
-        if (_mqttClient.connect("Paketkasten", config.mqttUser.c_str(), config.mqttPassword.c_str())) {
-            Serial.println("MQTT connected.");
+    if (WiFi.status() != WL_CONNECTED) {
+        _connected = false;
+        return;
+    }
+    unsigned long now = millis();
+    if (_lastReconnectAttempt == 0 || (now - _lastReconnectAttempt > 5000)) {
+        _lastReconnectAttempt = now;
+        bool connected = false;
+        if (_mqttUser.length() > 0) {
+            connected = _mqttClient.connect("Paketkasten", _mqttUser.c_str(), _mqttPassword.c_str());
+        } else {
+            connected = _mqttClient.connect("Paketkasten");
+        }
+        _connected = connected;
+        if (connected) {
+            telemetryLog.logf("MQTT", "Connected to %s", _mqttServer.c_str());
             _mqttClient.subscribe("paketkasten/command");
             publishState();
         } else {
-            Serial.print("MQTT connection failed, rc=");
-            Serial.println(_mqttClient.state());
+            telemetryLog.logf("MQTT", "Connect failed (rc=%d)", _mqttClient.state());
         }
     }
 }
 
 void MqttManager::handleQueue() {
-    if (_mqttClient.connected() && xSemaphoreTake(mqttQueueMutex, pdMS_TO_TICKS(10)) == pdTRUE) {
+    if (_connected && xSemaphoreTake(mqttQueueMutex, pdMS_TO_TICKS(10)) == pdTRUE) {
         if (!mqttMessageQueue.empty()) {
-            std::vector<String> localQueue = mqttMessageQueue;
-            mqttMessageQueue.clear();
+            std::vector<String> localQueue;
+            localQueue.swap(mqttMessageQueue);
             xSemaphoreGive(mqttQueueMutex);
 
-            String stateTopic = "paketkasten/state";
+            const char* stateTopic = "paketkasten/state";
             for (const auto& msg : localQueue) {
                 Serial.print("Publishing state to MQTT: ");
                 Serial.println(msg);
-                _mqttClient.publish(stateTopic.c_str(), msg.c_str());
+                _mqttClient.publish(stateTopic, msg.c_str());
             }
         } else {
             xSemaphoreGive(mqttQueueMutex);
@@ -107,12 +120,22 @@ void MqttManager::handleQueue() {
 }
 
 void MqttManager::update() {
-    Config& config = configManager.getConfig();
-    if (config.mqttServer != "" && _netClient != nullptr) {
+    if (_mqttServer.length() > 0 && _netClient != nullptr) {
+        if (WiFi.status() != WL_CONNECTED) {
+            _connected = false;
+            return;
+        }
         _mqttClient.loop();
-        if (!_mqttClient.connected()) {
+        bool nowConnected = _mqttClient.connected();
+        if (_connected && !nowConnected) {
+            telemetryLog.logf("MQTT", "Disconnected (rc=%d)", _mqttClient.state());
+        }
+        _connected = nowConnected;
+        if (!nowConnected) {
             reconnect();
         }
         handleQueue();
+    } else {
+        _connected = false;
     }
 }

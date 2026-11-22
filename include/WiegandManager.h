@@ -12,13 +12,17 @@ public:
     void attach();
     void detach();
     bool isAttached() const { return _attached; }
+    WiegandFrameStats getLastFrameStats();
+    uint32_t getSingleBitGlitchCount() { return _wiegand.getSingleBitGlitchCount(); }
 
 private:
     int _d0Pin;
     int _d1Pin;
-    bool _attached;
+    volatile bool _attached;
     void (*_onCodeCallback)(char* code, uint8_t bits);
     Wiegand _wiegand;
+    portMUX_TYPE _pinBufMux;
+    WiegandFrameStats _lastStats;
 
     char _keypadPinStr[20];
     uint8_t _keypadPinLen;

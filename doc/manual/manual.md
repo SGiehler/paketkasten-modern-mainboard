@@ -49,21 +49,14 @@ Die Status-LEDs (Grün und Rot) zeigen den aktuellen Zustand des Systems an:
 
 # Motor-Geschwindigkeit (Duty Cycle)
 
-Der Duty Cycle beschreibt das Verhältnis der Einschaltdauer eines Motors zur gesamten Betriebszeit und beeinflusst direkt die Geschwindigkeit des Motors. Ist der Duty Cycle zu hoch, kann der Paketkasten blockieren oder über den Sensor hinausschießen. Ist er zu niedrig, reicht das initiale Drehmoment möglicherweise nicht aus, um den Kasten zu bewegen.
+Die Firmware steuert den Motor per **Slow-Decay PWM** (aktiv bremsende PWM-Pausen) mit einem kurzen **Start Kick** und automatischer Blockier-Nachregelung. Dadurch läuft der Motor auch bei niedrigen Geschwindigkeiten gleichmäßig und schießt nicht über die Hall-Sensoren hinaus.
 
-In der WebUI gibt es unter "Motor Speed" einen **Drive Mode**, der für Öffnen **und** Schließen gilt:
+- **Start Kick** (Standard `20 ms`, Bereich `0–100 ms`): kurzer 100%-Impuls, um das Schneckengetriebe aus dem Stillstand loszubrechen (beim federunterstützten Schließen automatisch halbiert). Brummt der Motor, ohne loszulaufen, den Wert erhöhen; ist der Anlauf zu ruckartig, verringern.
+- **Opening Speed (`20–255`) / Closing Speed (`20–180`)**: steuert die Fahrgeschwindigkeit beim Öffnen und Schließen. Größere Kästen mit schwererer Schlossmechanik benötigen beim Öffnen typischerweise höhere Werte (z. B. `160–220`) als kleinere Testkästen (`~110`).
 
-| Modus | Verhalten |
-|-------|-----------|
-| **Original** (Standard) | Wie die bisherige Firmware: 100 ms volle Kraft, danach der eingestellte Duty Cycle. Die Bewegung ist meist schon innerhalb dieser 100 ms fertig, die Schieberegler wirken daher kaum. |
-| **Slow – smooth** | Kurzer Start-Kick, danach gleichmäßig langsame Fahrt mit dem eingestellten Duty Cycle. Empfohlen, wenn der Kasten über das Ziel hinausschießt. |
-| **Slow – steps** | Kurzer Start-Kick, danach Bewegung in kleinen Schritten. Der Schieberegler bestimmt die Pause zwischen den Schritten. Auto-Kalibrierung ist hier nicht verfügbar. |
+**Einstellen:** Nach jeder Bewegung zeigt die WebUI unter "Last movement" an, wie lange die Fahrt gedauert hat. Zeigt sie den Hinweis *stall boost*, war der Duty Cycle zu niedrig: Die Firmware hat nach `0,8 s` die Kraft schrittweise erhöht (beim Öffnen bis volle `255`, beim Schließen bis `180`), damit der Kasten trotzdem sicher öffnet bzw. verriegelt. In diesem Fall den Duty Cycle erhöhen.
 
-**Start Kick** (nur in den langsamen Modi): kurzer Impuls mit voller Kraft, um das Schneckengetriebe aus dem Stillstand loszubrechen. Brummt der Motor, ohne loszulaufen, den Wert erhöhen; ist die erste Bewegung noch zu schnell, verringern.
-
-**Einstellen:** Nach jeder Bewegung zeigt die WebUI unter "Last movement" an, wie lange die Fahrt gedauert hat. Zeigt sie den Hinweis *stall boost was needed*, war der Duty Cycle zu niedrig: Die Firmware hat nach 1,5 s die Kraft schrittweise erhöht, damit der Kasten trotzdem sicher öffnet bzw. verriegelt. In diesem Fall den Duty Cycle erhöhen.
-
-Geht der Kasten nicht auf oder zu, sollte dieser Wert in 5er-Schritten erhöht werden. Sollte der Kasten blockieren, muss man leider die Elektronik wieder ausbauen und den Motor einmal herausnehmen, da er selbstständig aus der Blockade nicht wieder heraus kommt. In diesem Fall sollte der Duty Cycle reduziert bzw. ein langsamer Modus gewählt werden.
+Sollte der Zustand auf `MOTOR_ERROR` stehen, lässt sich der Fehler in der WebUI über **Clear Motor Error** zurücksetzen oder über **Lock / Home** manuell verriegeln. Für die Live-Diagnose im Betrieb (Wiegand-Frame-Timings, Hall-Sensoren, Motorfahrten, WLAN/MQTT) lässt sich unter *Settings* jederzeit das **Dev Telemetry Log** ohne Neustart aktivieren.
 
 ![Duty Cycle Diagramm](duty-cycle.png)
 
@@ -94,6 +87,8 @@ Das System kann Befehle über das Topic `paketkasten/command` empfangen. Aktuell
 
 *   `OPEN_PARCEL`: Öffnet das Paketfach, falls der Paketkasten verriegelt ist.
 *   `OPEN_MAIL`: Öffnet das Brief-/Postfach, falls der Paketkasten verriegelt ist.
+*   `LOCK`: Verriegelt das Schloss manuell (bzw. fährt in die Grundstellung).
+*   `RESET_ERROR`: Setzt einen `MOTOR_ERROR` zurück auf `LOCKED` (ohne den Motor zu bewegen).
 
 # Flashen des ESP32 Mikrocontrollers
 

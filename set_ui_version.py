@@ -3,12 +3,12 @@ import os
 
 def set_ui_version(version):
     index_html_path = os.path.join("data", "index.html")
-    with open(index_html_path, "r") as f:
+    with open(index_html_path, "r", encoding="utf-8") as f:
         content = f.read()
 
     content = content.replace("UI_VERSION_PLACEHOLDER", version)
 
-    with open(index_html_path, "w") as f:
+    with open(index_html_path, "w", encoding="utf-8") as f:
         f.write(content)
 
 if __name__ == "__main__":

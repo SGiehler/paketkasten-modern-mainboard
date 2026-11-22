@@ -21,6 +21,12 @@ private:
 
     Client* _netClient = nullptr;
     PubSubClient _mqttClient;
+    String _caCert; // Must outlive WiFiClientSecure because setCACert() stores a raw pointer
+    String _mqttServer;
+    String _mqttUser;
+    String _mqttPassword;
+    unsigned long _lastReconnectAttempt = 0;
+    volatile bool _connected = false;
 };
 
 extern MqttManager mqttManager;

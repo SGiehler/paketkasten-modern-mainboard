@@ -1,884 +1,1795 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Paketkasten Setup</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paketkasten</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+  (function() {
+    var saved = localStorage.getItem('pk_theme');
+    if (saved === 'dark' || saved === 'light') {
+      document.documentElement.setAttribute('data-theme', saved);
+    }
+  })();
+</script>
 <style>
   :root {
-    --primary-color: #007bff;
-    --primary-color-hover: #0056b3;
-    --danger-color: #dc3545;
-    --danger-color-hover: #c82333;
-    --light-bg: #f8f9fa;
-    --dark-bg: #212529;
-    --light-color: #212529;
-    --dark-color: #f8f9fa;
-    --light-border: #dee2e6;
-    --dark-border: #495057;
-    --light-input-bg: #fff;
-    --dark-input-bg: #343a40;
-    --success-color: #28a745;
-    --off-color: #6c757d;
+    --bg: #f1f5f9;
+    --surface: #ffffff;
+    --surface-2: #f8fafc;
+    --surface-hover: #f1f5f9;
+    --border: #e2e8f0;
+    --border-strong: #cbd5e1;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --primary-soft: rgba(37, 99, 235, 0.10);
+    --success: #10b981;
+    --success-soft: rgba(16, 185, 129, 0.14);
+    --warning: #f59e0b;
+    --warning-soft: rgba(245, 158, 11, 0.15);
+    --danger: #ef4444;
+    --danger-hover: #dc2626;
+    --danger-soft: rgba(239, 68, 68, 0.13);
+    --shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 4px 14px rgba(15, 23, 42, 0.04);
+    --radius: 14px;
+    --radius-sm: 9px;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0b1120;
+      --surface: #111827;
+      --surface-2: #1e293b;
+      --surface-hover: #263348;
+      --border: #1f2937;
+      --border-strong: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --primary-soft: rgba(59, 130, 246, 0.16);
+      --success: #34d399;
+      --success-soft: rgba(52, 211, 153, 0.16);
+      --warning: #fbbf24;
+      --warning-soft: rgba(251, 191, 36, 0.16);
+      --danger: #f87171;
+      --danger-hover: #ef4444;
+      --danger-soft: rgba(248, 113, 113, 0.16);
+      --shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #0b1120;
+    --surface: #111827;
+    --surface-2: #1e293b;
+    --surface-hover: #263348;
+    --border: #1f2937;
+    --border-strong: #334155;
+    --text: #f8fafc;
+    --text-muted: #94a3b8;
+    --primary: #3b82f6;
+    --primary-hover: #2563eb;
+    --primary-soft: rgba(59, 130, 246, 0.16);
+    --success: #34d399;
+    --success-soft: rgba(52, 211, 153, 0.16);
+    --warning: #fbbf24;
+    --warning-soft: rgba(251, 191, 36, 0.16);
+    --danger: #f87171;
+    --danger-hover: #ef4444;
+    --danger-soft: rgba(248, 113, 113, 0.16);
+    --shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.45;
   }
 
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    background-color: var(--light-bg);
-    color: var(--light-color);
-    margin: 0;
-    padding: 20px;
+    padding: 16px 14px 96px;
+  }
+
+  .app {
+    max-width: 980px;
+    margin: 0 auto;
+  }
+
+  /* Header & Hero */
+  .topbar {
     display: flex;
-    justify-content: center;
     align-items: center;
-    min-height: 100vh;
-    box-sizing: border-box;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
   }
 
-  .container {
-    width: 100%;
-    max-width: 600px;
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 11px;
   }
 
-  h1, h2 {
-    text-align: center;
-    margin-bottom: 20px;
+  .brand-logo {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    background: linear-gradient(135deg, var(--primary), #6366f1);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.28);
+    flex-shrink: 0;
+  }
+
+  .brand h1 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.02em;
+  }
+
+  .brand-sub {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-family: var(--mono);
+  }
+
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 0.78rem;
     font-weight: 600;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    white-space: nowrap;
   }
-  
-  h1 {
-    font-size: 2rem;
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  .dot-ok { background: var(--success); box-shadow: 0 0 0 3px var(--success-soft); }
+  .dot-warn { background: var(--warning); box-shadow: 0 0 0 3px var(--warning-soft); }
+  .dot-err { background: var(--danger); box-shadow: 0 0 0 3px var(--danger-soft); }
+
+  .icon-only-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .icon-only-btn:hover { background: var(--surface-hover); border-color: var(--border-strong); }
+
+  /* Hero Status Card */
+  .hero {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+    margin-bottom: 14px;
+  }
+
+  .hero-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+
+  .state-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 13px;
+    border-radius: 999px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+  }
+
+  .state-pill.is-locked { color: var(--success); background: var(--success-soft); border-color: transparent; }
+  .state-pill.is-moving { color: var(--primary); background: var(--primary-soft); border-color: transparent; }
+  .state-pill.is-open { color: var(--warning); background: var(--warning-soft); border-color: transparent; }
+  .state-pill.is-error { color: var(--danger); background: var(--danger-soft); border-color: transparent; }
+
+  .hero-meta {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+
+  .hero-meta strong { color: var(--text); font-weight: 600; }
+
+  /* Visual 3-Hall-Sensor Position Track */
+  .sensor-track {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding-top: 4px;
+  }
+
+  .sensor-track::before {
+    content: "";
+    position: absolute;
+    top: 15px;
+    left: 16.6%;
+    right: 16.6%;
+    height: 2px;
+    background: var(--border-strong);
+    z-index: 0;
+  }
+
+  .sensor-node {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    text-align: center;
+  }
+
+  .sensor-dot {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 2px solid var(--border-strong);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+  }
+
+  .sensor-dot::after {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: transparent;
+    transition: background 0.2s ease;
+  }
+
+  .sensor-node.active .sensor-dot {
+    border-color: var(--success);
+    background: var(--success-soft);
+    box-shadow: 0 0 0 4px var(--success-soft);
+  }
+
+  .sensor-node.active .sensor-dot::after { background: var(--success); }
+
+  .sensor-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+
+  .sensor-node.active .sensor-label { color: var(--text); }
+
+  .error-banner {
+    display: none;
+    margin-top: 14px;
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    background: var(--danger-soft);
+    border: 1px solid var(--danger);
+    color: var(--danger);
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .error-banner.visible { display: flex; }
+
+  /* Tabs */
+  .tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 5px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+  }
+
+  .tab-btn {
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 10px 12px;
+    border-radius: 9px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .tab-btn:hover { color: var(--text); background: var(--surface-2); }
+
+  .tab-btn.active {
+    background: var(--primary);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+  }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* Responsive Grid */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+
+  @media (min-width: 760px) {
+    body { padding: 24px 24px 104px; }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .span-2 { grid-column: 1 / -1; }
+  }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .card-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-title svg { color: var(--primary); flex-shrink: 0; }
+
+  .helper {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin: 0 0 12px 0;
+    line-height: 1.45;
+  }
+
+  /* Action Tiles */
+  .action-tiles {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .action-tile {
+    appearance: none;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    padding: 16px 12px;
+    background: var(--primary);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    min-height: 88px;
+    transition: transform 0.1s, background 0.15s, box-shadow 0.15s;
+    box-shadow: 0 3px 10px rgba(37, 99, 235, 0.22);
+  }
+
+  .action-tile:hover { background: var(--primary-hover); }
+  .action-tile:active { transform: scale(0.98); }
+
+  .action-tile.tile-mail {
+    background: #4f46e5;
+    box-shadow: 0 3px 10px rgba(79, 70, 229, 0.22);
+  }
+
+  .action-tile.tile-mail:hover { background: #4338ca; }
+
+  .action-sub {
+    font-size: 0.74rem;
+    font-weight: 400;
+    opacity: 0.85;
+  }
+
+  /* Buttons */
+  .btn {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 9px 14px;
+    min-height: 40px;
+    border-radius: var(--radius-sm);
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    text-decoration: none;
+    transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
+    white-space: nowrap;
+  }
+
+  .btn:active { transform: scale(0.985); }
+  .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+  .btn-block { width: 100%; }
+  .btn-sm { min-height: 34px; padding: 6px 11px; font-size: 0.82rem; }
+
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+
+  .btn-secondary {
+    background: var(--surface-2);
+    color: var(--text);
+    border-color: var(--border-strong);
+  }
+  .btn-secondary:hover:not(:disabled) { background: var(--surface-hover); }
+
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-danger:hover:not(:disabled) { background: var(--danger-hover); }
+
+  .btn-danger-outline {
+    background: transparent;
+    color: var(--danger);
+    border-color: var(--danger);
+  }
+  .btn-danger-outline:hover:not(:disabled) { background: var(--danger-soft); }
+
+  .btn-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .btn-row > .btn { flex: 1 1 auto; }
+
+  /* Feedback Toast / Inline Banner */
+  .feedback {
+    display: none;
     margin-top: 10px;
-  }
-  
-  h2 {
-    font-size: 1.35rem;
-    border-bottom: 1px solid var(--light-border);
-    padding-bottom: 8px;
-    margin-top: 25px;
+    padding: 9px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 0.84rem;
+    font-weight: 500;
   }
 
-  .divider {
-    border-top: 1px solid var(--light-border);
-    margin: 20px 0;
+  .feedback.ok { display: block; background: var(--success-soft); color: var(--success); border: 1px solid var(--success); }
+  .feedback.err { display: block; background: var(--danger-soft); color: var(--danger); border: 1px solid var(--danger); }
+
+  /* Form Controls */
+  .field { margin-bottom: 13px; }
+  .field:last-child { margin-bottom: 0; }
+
+  label.field-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.84rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--text);
   }
 
-  .box {
-    background-color: var(--light-input-bg);
-    padding: 15px 30px 30px 30px;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
-  }
-
-  .box > h2:first-child {
-    margin-top: 0;
-  }
-
-  label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: bold;
+  .range-val {
+    font-family: var(--mono);
+    font-size: 0.84rem;
+    padding: 2px 7px;
+    border-radius: 6px;
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-weight: 700;
   }
 
   input[type="text"],
   input[type="password"],
   input[type="number"],
-  input[type="range"],
-  textarea,
-  select {
+  select,
+  textarea {
     width: 100%;
-    padding: 12px;
-    margin-bottom: 15px;
-    border: 1px solid var(--light-border);
-    border-radius: 4px;
-    box-sizing: border-box;
-    font-size: 1rem;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-strong);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 0.92rem;
+    font-family: inherit;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-soft);
   }
 
   textarea {
-    font-family: monospace;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    min-height: 92px;
     resize: vertical;
-    min-height: 100px;
-    font-size: 0.85rem;
   }
 
-  .btn {
-    display: inline-block;
-    font-weight: 400;
-    text-align: center;
-    vertical-align: middle;
-    cursor: pointer;
-    border: 1px solid transparent;
-    padding: 12px 20px;
-    font-size: 1rem;
-    border-radius: 4px;
-    text-decoration: none;
+  input[type="range"] {
     width: 100%;
-    box-sizing: border-box;
-    margin-top: 10px;
-  }
-
-  .btn-primary {
-    color: #fff;
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
-  }
-
-  .btn-primary:hover {
-    background-color: var(--primary-color-hover);
-    border-color: var(--primary-color-hover);
-  }
-
-  .btn-danger {
-    color: #fff;
-    background-color: var(--danger-color);
-    border-color: var(--danger-color);
-  }
-
-  .btn-danger:hover {
-    background-color: var(--danger-color-hover);
-    border-color: var(--danger-color-hover);
-  }
-
-  .btn.icon-btn {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 0;
-  }
-  .icon-btn .icon {
-    padding: 12px;
-    font-size: 1.2em;
-  }
-  .icon-btn .separator {
-    border-left: 1px solid rgba(255, 255, 255, 0.4);
-    align-self: stretch;
-  }
-  .icon-btn .text {
-    flex-grow: 1;
-    text-align: center;
-    padding: 12px;
-  }
-  
-  .code-entry {
-    display: flex;
-    align-items: center;
-    margin-bottom: 10px;
-  }
-  
-  .code-entry input {
-    flex: 1;
-    margin-right: 10px;
-    margin-bottom: 0;
-  }
-  
-  .remove-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-    background-color: var(--danger-color);
-    color: white;
-    border: none;
-    border-radius: 50%;
+    accent-color: var(--primary);
+    height: 6px;
+    margin: 6px 0 4px;
     cursor: pointer;
-    font-size: 1.2rem;
-    line-height: 0;
-    padding: 0;
-    padding-bottom: 2px;
-  }
-  
-  .remove-btn:hover {
-    background-color: var(--danger-color-hover);
-  }
-  
-  .diagnostics-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 15px;
-  }
-  
-  .diagnostic-item {
-    background: var(--light-bg);
-    padding: 15px;
-    border-radius: 5px;
-    border: 1px solid var(--light-border);
-  }
-  
-  .diagnostic-item .label {
-    font-weight: bold;
-    margin-bottom: 5px;
-  }
-  
-  .diagnostic-item .value {
-    font-family: monospace;
-  }
-  
-  .status-indicator {
-    display: inline-block;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    margin-right: 8px;
-  }
-  
-  .status-on {
-    background-color: var(--success-color);
-  }
-  
-  .status-off {
-    background-color: var(--off-color);
   }
 
-  .setting-container {
+  .range-hints {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    margin-bottom: 5px;
+    font-size: 0.74rem;
+    color: var(--text-muted);
+    margin-bottom: 6px;
   }
 
-  .setting-explainer {
-    font-size: 0.85rem;
-    color: var(--off-color);
-    margin-top: 0;
-    margin-bottom: 15px;
-    line-height: 1.4;
+  .inline-group {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .inline-group > input,
+  .inline-group > select { flex: 1 1 auto; min-width: 0; }
+
+  .two-col-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  @media (max-width: 440px) {
+    .two-col-fields { grid-template-columns: 1fr; }
+  }
+
+  /* Toggle Switch */
+  .toggle-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .toggle-row:first-of-type { padding-top: 2px; }
+  .toggle-row:last-of-type { border-bottom: none; padding-bottom: 2px; }
+
+  .toggle-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: block;
+    cursor: pointer;
+  }
+
+  .toggle-desc {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin: 3px 0 0;
   }
 
   .switch {
     position: relative;
     display: inline-block;
-    width: 60px;
-    height: 34px;
+    width: 46px;
+    height: 26px;
+    flex-shrink: 0;
+    margin-top: 2px;
   }
 
-  .switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
+  .switch input { opacity: 0; width: 0; height: 0; }
 
   .slider {
     position: absolute;
+    inset: 0;
     cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #ccc;
-    -webkit-transition: .4s;
-    transition: .4s;
+    background: var(--border-strong);
+    border-radius: 999px;
+    transition: background 0.2s;
   }
 
-  .slider:before {
-    position: absolute;
+  .slider::before {
     content: "";
-    height: 26px;
-    width: 26px;
-    left: 4px;
-    bottom: 4px;
-    background-color: white;
-    -webkit-transition: .4s;
-    transition: .4s;
-  }
-
-  input:checked + .slider {
-    background-color: var(--primary-color);
-  }
-
-  input:focus + .slider {
-    box-shadow: 0 0 1px var(--primary-color);
-  }
-
-  input:checked + .slider:before {
-    -webkit-transform: translateX(26px);
-    -ms-transform: translateX(26px);
-    transform: translateX(26px);
-  }
-
-  .slider.round {
-    border-radius: 34px;
-  }
-
-  .slider.round:before {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    left: 3px;
+    bottom: 3px;
+    background: #fff;
     border-radius: 50%;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
   }
 
-  .wifi-networks-box {
-    margin-bottom: 15px;
+  .switch input:checked + .slider { background: var(--primary); }
+  .switch input:checked + .slider::before { transform: translateX(20px); }
+
+  /* Tables & Lists */
+  .table-wrap { overflow-x: auto; margin-bottom: 12px; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.86rem;
   }
 
-  .wifi-network-item {
+  th {
+    text-align: left;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    padding: 8px 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 9px 6px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+
+  tr:last-child td { border-bottom: none; }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 600;
+  }
+
+  .badge-ok { background: var(--success-soft); color: var(--success); }
+  .badge-muted { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
+  .badge-warn { background: var(--warning-soft); color: var(--warning); }
+
+  .otc-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .otc-form-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 8px;
+  }
+
+  @media (max-width: 440px) {
+    .otc-form { grid-template-columns: 1fr; }
+  }
+
+  /* Wiegand Banner & Code Entries */
+  .wiegand-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+  }
+
+  .wiegand-id-val {
+    font-family: var(--mono);
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--primary);
+  }
+
+  .code-entry {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .code-entry input { flex: 1 1 0; min-width: 0; }
+
+  .del-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+
+  .del-btn:hover { background: var(--danger-soft); color: var(--danger); border-color: var(--danger); }
+
+  /* WiFi Scan List */
+  .wifi-list {
+    max-height: 190px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 10px 0 14px;
+  }
+
+  .wifi-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px;
-    border: 1px solid var(--light-border);
-    border-radius: 4px;
-    background: var(--light-bg);
-    color: var(--light-color);
+    padding: 9px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface-2);
     cursor: pointer;
-    transition: background 0.2s, border-color 0.2s;
-    box-sizing: border-box;
+    font-size: 0.88rem;
+    transition: border-color 0.15s, background 0.15s;
   }
 
-  .wifi-network-item:hover {
-    background: #e9ecef;
-    border-color: var(--primary-color);
+  .wifi-item:hover { border-color: var(--primary); background: var(--surface-hover); }
+
+  .wifi-meta { font-family: var(--mono); font-size: 0.78rem; color: var(--text-muted); }
+
+  /* Live Telemetry Console */
+  .telemetry-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+    gap: 8px;
+    margin-bottom: 12px;
   }
 
-  .wifi-info {
-    font-size: 0.9rem;
-    color: var(--off-color);
-    font-family: monospace;
+  .t-stat {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+  }
+
+  .t-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); font-weight: 600; }
+  .t-val { font-family: var(--mono); font-size: 0.82rem; margin-top: 2px; word-break: break-word; }
+
+  .telemetry-console {
+    background: #0d1117;
+    color: #e6edf3;
+    border: 1px solid #30363d;
+    border-radius: var(--radius-sm);
+    padding: 11px 12px;
+    height: 240px;
+    overflow-y: auto;
+    font-family: var(--mono);
+    font-size: 0.77rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .log-line { margin: 0 0 2px; }
+  .log-ts { color: #8b949e; }
+  .log-cat { font-weight: 700; }
+  .log-cat-WIEGAND { color: #79c0ff; }
+  .log-cat-MOTOR { color: #ffa657; }
+  .log-cat-SWITCH { color: #d2a8ff; }
+  .log-cat-ACCESS { color: #56d364; }
+  .log-cat-MQTT { color: #a5d6ff; }
+  .log-cat-WIFI { color: #7ee787; }
+  .log-cat-HTTP { color: #f2cc60; }
+  .log-cat-OTA { color: #ff7b72; }
+  .log-cat-SYSTEM, .log-cat-CONFIG { color: #c9d1d9; }
+
+  .info-strip {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding-top: 12px;
+    margin-top: 12px;
+    border-top: 1px solid var(--border);
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+
+  .info-strip strong { color: var(--text); font-family: var(--mono); font-size: 0.8rem; }
+
+  .tls-box {
+    margin-top: 10px;
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+  }
+
+  /* Sticky Save Bar */
+  .save-dock {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border);
+    transform: translateY(110%);
+    transition: transform 0.22s ease;
   }
 
   @media (prefers-color-scheme: dark) {
-    body {
-      background-color: var(--dark-bg);
-      color: var(--dark-color);
-    }
-    .box {
-      background-color: var(--dark-input-bg);
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-    }
-    h2 {
-      border-bottom-color: var(--dark-border);
-    }
-    .divider {
-      border-top-color: var(--dark-border);
-    }
-    input[type="text"],
-    input[type="password"],
-    input[type="number"],
-    textarea,
-    select {
-      background-color: #212529;
-      color: var(--dark-color);
-      border-color: var(--dark-border);
-    }
-    .diagnostic-item {
-      background: var(--dark-bg);
-      border-color: var(--dark-border);
-    }
-    .wifi-network-item {
-      border-color: var(--dark-border);
-      background: var(--dark-bg);
-      color: var(--dark-color);
-    }
-    .wifi-network-item:hover {
-      background: #2b3035;
-      border-color: var(--primary-color);
-    }
-    .calibration-status-box {
-      background-color: var(--dark-bg) !important;
-      border-color: var(--dark-border) !important;
-    }
+    :root:not([data-theme="light"]) .save-dock { background: rgba(17, 24, 39, 0.90); }
   }
+  :root[data-theme="dark"] .save-dock { background: rgba(17, 24, 39, 0.90); }
+
+  .save-dock.visible { transform: translateY(0); }
+
+  .save-dock-inner {
+    max-width: 980px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .save-dock-msg {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.86rem;
+    font-weight: 600;
+  }
+
+  .muted { color: var(--text-muted); }
+  .mono { font-family: var(--mono); }
+  .mt-10 { margin-top: 10px; }
+  .mt-14 { margin-top: 14px; }
 </style>
 </head>
 <body>
-<div class="container">
-  <h1>Paketkasten Setup</h1>
-  
-  <div class="box">
-    <h2>Diagnostics</h2>
-    <div class="diagnostics-grid">
-      <div class="diagnostic-item">
-        <div class="label">Closed Switch</div>
-        <div class="value"><span id="closedSwitch" class="status-indicator status-off"></span><span id="closedSwitchText"></span></div>
-      </div>
-      <div class="diagnostic-item">
-        <div class="label">Parcel Switch</div>
-        <div class="value"><span id="parcelSwitch" class="status-indicator status-off"></span><span id="parcelSwitchText"></span></div>
-      </div>
-      <div class="diagnostic-item">
-        <div class="label">Mail Switch</div>
-        <div class="value"><span id="mailSwitch" class="status-indicator status-off"></span><span id="mailSwitchText"></span></div>
-      </div>
-      <div class="diagnostic-item">
-        <div class="label">Mailbox State</div>
-        <div class="value" id="mailboxState">-</div>
-      </div>
-      <div class="diagnostic-item">
-        <div class="label">Last Wiegand ID</div>
-        <div class="value" id="scannedId">-</div>
-      </div>
+<div class="app">
 
-      <div class="diagnostic-item">
-        <div class="label">Delivery Mode</div>
-        <div class="value"><span id="deliveryBlocked" class="status-indicator status-off"></span><span id="deliveryBlockedText">-</span></div>
+  <!-- Top Bar -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-logo" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
       </div>
-      <div class="diagnostic-item">
-        <div class="label">Versions</div>
-        <div class="value">FW: <span id="firmwareVersion">-</span></div>
-        <div class="value">FS: <span id="uiVersion">-</span></div>
+      <div>
+        <h1>Paketkasten</h1>
+        <div class="brand-sub">FW <span id="firmwareVersion">-</span> &middot; UI <span id="uiVersion">-</span></div>
       </div>
-      <div class="diagnostic-item" style="grid-column: 1 / -1;">
-        <div class="label">Actions</div>
-        <div class="value">
-          <button type="button" class="btn btn-primary icon-btn" style="margin-bottom: 5px;" onclick="openMailbox('parcel')">
-            <span class="icon">📦</span>
-            <span class="separator"></span>
-            <span class="text">Open Parcel</span>
-          </button>
-          <button type="button" class="btn btn-primary icon-btn" onclick="openMailbox('all')">
-            <span class="icon">✉️</span>
-            <span class="separator"></span>
-            <span class="text">Open Mail</span>
-          </button>
-        </div>
-      </div>
-
     </div>
-  </div>
-
-  <div class="box">
-    <h2>One-Time Codes</h2>
-    <table id="oneTimeCodesTable" style="width: 100%; border-collapse: collapse; margin-bottom: 15px; text-align: left;">
-      <thead>
-        <tr style="border-bottom: 2px solid var(--light-border);">
-          <th style="padding: 10px 5px;">Label</th>
-          <th style="padding: 10px 5px;">Code</th>
-          <th style="padding: 10px 5px;">Status</th>
-          <th style="padding: 10px 5px; text-align: right;">Action</th>
-        </tr>
-      </thead>
-      <tbody id="oneTimeCodesList">
-        <!-- Populated dynamically -->
-      </tbody>
-    </table>
-    
-    <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
-      <input type="text" id="newOtcLabel" placeholder="Label (e.g. DHL)" style="margin-bottom: 0; flex: 2;" />
-      <input type="text" id="newOtcCode" placeholder="Code (e.g. 123456)" style="margin-bottom: 0; flex: 2;" />
-      <button type="button" class="btn btn-primary icon-btn" onclick="generateRandomOtc()" style="margin-top: 0; flex: 1; white-space: nowrap;">
-        <span class="icon">🔑</span>
-        <span class="separator"></span>
-        <span class="text">Gen Code</span>
+    <div class="topbar-right">
+      <span class="chip" id="wifiChip"><span class="dot" id="wifiDot"></span><span id="wifiChipText">WiFi</span></span>
+      <span class="chip" id="mqttChip"><span class="dot" id="mqttDot"></span><span id="mqttChipText">MQTT</span></span>
+      <button type="button" class="chip" id="devChip" style="display:none; cursor:pointer; color:var(--primary); border-color:var(--primary);" onclick="jumpToTelemetry()">
+        <span class="dot dot-ok"></span><span>DEV</span>
+      </button>
+      <button type="button" class="icon-only-btn" id="themeToggle" title="Toggle light / dark theme" aria-label="Toggle theme">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
       </button>
     </div>
-    <button type="button" class="btn btn-primary icon-btn" onclick="addOneTimeCode()">
-        <span class="icon">➕</span>
-        <span class="separator"></span>
-        <span class="text">Add One-Time Code</span>
+  </header>
+
+  <!-- Hero Live Status -->
+  <section class="hero">
+    <div class="hero-top">
+      <div class="state-pill" id="statePill">
+        <span class="dot" id="stateDot"></span>
+        <span id="mailboxState">-</span>
+      </div>
+      <div class="hero-meta">
+        <span>Delivery: <strong id="deliveryBlockedText">-</strong></span>
+        <span>Last ID: <strong class="mono" id="heroScannedId">-</strong></span>
+      </div>
+    </div>
+
+    <div class="sensor-track" aria-label="Hall sensor positions">
+      <div class="sensor-node" id="nodeClosed">
+        <div class="sensor-dot"></div>
+        <div class="sensor-label">Closed</div>
+      </div>
+      <div class="sensor-node" id="nodeParcel">
+        <div class="sensor-dot"></div>
+        <div class="sensor-label">Parcel</div>
+      </div>
+      <div class="sensor-node" id="nodeMail">
+        <div class="sensor-dot"></div>
+        <div class="sensor-label">Mail</div>
+      </div>
+    </div>
+
+    <div class="error-banner" id="errorBanner">
+      <div><strong>Motor Error detected</strong> — movement timed out. Clear the error before retrying.</div>
+      <button type="button" class="btn btn-danger btn-sm" onclick="resetMotorError()">Clear Motor Error</button>
+    </div>
+  </section>
+
+  <!-- Navigation Tabs -->
+  <nav class="tabs" role="tablist">
+    <button type="button" class="tab-btn active" data-tab="dashboard" role="tab" aria-selected="true">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+      <span>Dashboard</span>
     </button>
-  </div>
+    <button type="button" class="tab-btn" data-tab="access" role="tab" aria-selected="false">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>
+      <span>Access</span>
+    </button>
+    <button type="button" class="tab-btn" data-tab="settings" role="tab" aria-selected="false">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+      <span>Settings</span>
+    </button>
+  </nav>
 
-  <form action="/save" method="post">
-    <div class="box">
-      <h2>WiFi</h2>
-      <label for="ssid">SSID:</label>
-      <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
-        <input type="text" id="ssid" name="ssid" style="margin-bottom: 0; flex: 1;">
-        <button type="button" id="wifiScanBtn" class="btn btn-primary icon-btn" onclick="scanWifi()" style="margin-top: 0; width: auto; white-space: nowrap;">
-          <span class="icon" id="wifiScanIcon">🔍</span>
-          <span class="separator"></span>
-          <span class="text" id="wifiScanText">Scan</span>
+  <!-- TAB 1: DASHBOARD -->
+  <section class="tab-panel active" id="tab-dashboard">
+    <div class="grid-2">
+      <!-- Quick Controls -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+            Controls
+          </h2>
+        </div>
+
+        <div class="action-tiles">
+          <button type="button" class="action-tile" onclick="openMailbox('parcel')">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+            <span>Open Parcel</span>
+            <span class="action-sub">Parcel compartment</span>
+          </button>
+          <button type="button" class="action-tile tile-mail" onclick="openMailbox('all')">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            <span>Open Mail</span>
+            <span class="action-sub">Mail &amp; parcel</span>
+          </button>
+        </div>
+
+        <button type="button" class="btn btn-secondary btn-block" onclick="lockMailbox()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Lock / Home
         </button>
-      </div>
 
-      <div id="wifiScanResult" class="wifi-networks-box" style="display: none;">
-        <label style="margin-bottom: 10px;">Select Network:</label>
-        <div id="wifiList" style="max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
-          <!-- Scanned networks populated here -->
+        <div id="actionFeedback" class="feedback"></div>
+
+        <div class="info-strip">
+          <span>Last movement</span>
+          <strong id="lastStrokeDash">-</strong>
         </div>
       </div>
 
-      <label for="password">Password:</label>
-      <input type="password" id="password" name="password">
-    </div>
-
-    <div class="box">
-      <h2>Wiegand</h2>
-      <div id="ownerCodes">
-        <label>Owner Codes:</label>
-      </div>
-      <button type="button" class="btn btn-primary icon-btn" onclick="addCode('owner')">
-          <span class="icon">➕</span>
-          <span class="separator"></span>
-          <span class="text">Add Owner Code</span>
-      </button>
-      
-      <div id="deliveryCodes" style="margin-top: 20px;">
-        <label>Delivery Codes:</label>
-      </div>
-      <button type="button" class="btn btn-primary icon-btn" onclick="addCode('delivery')">
-          <span class="icon">➕</span>
-          <span class="separator"></span>
-          <span class="text">Add Delivery Code</span>
-      </button>
-
-      <input type="hidden" id="ownerCodesJson" name="ownerCodes">
-      <input type="hidden" id="deliveryCodesJson" name="deliveryCodes">
-    </div>
-
-    <div class="box">
-      <h2>HTTP Callback</h2>
-      <label for="callbackUrl">Callback URL:</label>
-      <input type="text" id="callbackUrl" name="callbackUrl" placeholder="http://[ip]/callback?comp={compartment}">
-      <p>Will be called when opening compartment.</p>
-      <p>Available variable:</p>
-      <ul>
-        <li>{compartment} = mail or parcel</li> 
-      </ul> 
-      
-      <div id="callbackTlsSection" style="margin-top: 15px; display: none;">
-        <div class="setting-container">
-          <label for="callbackSkipCertVal" style="margin-bottom: 0;">Skip HTTPS Certificate Validation (Insecure)</label>
-          <label class="switch">
-            <input type="checkbox" id="callbackSkipCertVal" name="callbackSkipCertVal">
-            <span class="slider round"></span>
-          </label>
+      <!-- One-Time Codes -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-4-4Z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/></svg>
+            One-Time Codes
+          </h2>
+          <span class="badge badge-muted">Instant save</span>
         </div>
-        <p class="setting-explainer">Enable to skip CA certificate validation for HTTPS callbacks (useful for self-signed certificates).</p>
 
-        <div id="callbackCaGroup">
-          <label for="callbackCa">HTTPS Root CA Certificate (PEM):</label>
-          <textarea id="callbackCa" name="callbackCa" placeholder="-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"></textarea>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Label</th>
+                <th>Code</th>
+                <th>Status</th>
+                <th style="text-align:right;"></th>
+              </tr>
+            </thead>
+            <tbody id="oneTimeCodesList"></tbody>
+          </table>
         </div>
-      </div>
-    </div>
 
-    <div class="box">
-      <h2>MQTT</h2>
-      <div style="display: flex; gap: 15px; margin-bottom: 15px;">
-        <div style="flex: 3;">
-          <label for="mqttServer">Server:</label>
-          <input type="text" id="mqttServer" name="mqttServer" style="margin-bottom: 0;">
-        </div>
-        <div style="flex: 1;">
-          <label for="mqttPort">Port:</label>
-          <input type="number" id="mqttPort" name="mqttPort" value="1883" style="margin-bottom: 0;">
+        <div class="otc-form">
+          <input type="text" id="newOtcLabel" placeholder="Label (e.g. DHL)">
+          <input type="text" id="newOtcCode" placeholder="Code (e.g. 123456)">
+          <div class="otc-form-actions">
+            <button type="button" class="btn btn-secondary" onclick="generateRandomOtc()" style="flex:1;">Generate</button>
+            <button type="button" class="btn btn-primary" onclick="addOneTimeCode()" style="flex:1.4;">Add Code</button>
+          </div>
         </div>
       </div>
 
-      <div style="display: flex; gap: 15px; margin-bottom: 15px;">
-        <div style="flex: 1;">
-          <label for="mqttUser">User:</label>
-          <input type="text" id="mqttUser" name="mqttUser" style="margin-bottom: 0;">
+      <!-- Live Telemetry (shown when Dev Telemetry Log is enabled) -->
+      <div class="card span-2" id="telemetryBox" style="display: none;">
+        <div class="card-header">
+          <h2 class="card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>
+            Live Telemetry (Dev)
+          </h2>
+          <div class="btn-row" style="flex:0 0 auto;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="copyTelemetryLog()" id="copyLogText">Copy Log</button>
+            <button type="button" class="btn btn-danger-outline btn-sm" onclick="clearTelemetryLog()">Clear</button>
+          </div>
         </div>
-        <div style="flex: 1;">
-          <label for="mqttPassword">Password:</label>
-          <input type="password" id="mqttPassword" name="mqttPassword" style="margin-bottom: 0;">
+
+        <div class="telemetry-stats">
+          <div class="t-stat"><div class="t-label">Uptime</div><div class="t-val" id="telUptime">-</div></div>
+          <div class="t-stat"><div class="t-label">Free Heap</div><div class="t-val" id="telHeap">-</div></div>
+          <div class="t-stat"><div class="t-label">WiFi / MQTT</div><div class="t-val" id="telNet">-</div></div>
+          <div class="t-stat"><div class="t-label">Wiegand Reader</div><div class="t-val" id="telWiegandReader">-</div></div>
+          <div class="t-stat" style="grid-column: 1 / -1;"><div class="t-label">Last Wiegand Frame</div><div class="t-val" id="telWiegandFrame">No frame received yet</div></div>
+        </div>
+
+        <div id="telemetryConsole" class="telemetry-console">Waiting for telemetry events...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Unified Config Form wrapping Access + Settings Tabs -->
+  <form id="configForm" action="/save" method="post">
+    <input type="hidden" id="ownerCodesJson" name="ownerCodes">
+    <input type="hidden" id="deliveryCodesJson" name="deliveryCodes">
+    <input type="hidden" id="oneTimeCodesJson" name="oneTimeCodes">
+
+    <!-- TAB 2: ACCESS -->
+    <section class="tab-panel" id="tab-access">
+      <div class="grid-2">
+        <div class="card span-2">
+          <div class="card-header">
+            <h2 class="card-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12a10 10 0 0 1 18-6"/><path d="M5 15a7 7 0 0 1 12-4"/><path d="M8 18a4 4 0 0 1 6-3"/><circle cx="12" cy="19" r="1"/></svg>
+              Last Scanned Wiegand ID
+            </h2>
+            <span class="badge badge-muted">Tap a card / RFID token</span>
+          </div>
+          <div class="wiegand-banner">
+            <div>
+              <div class="muted" style="font-size:0.76rem; margin-bottom:2px;">Detected ID (HEX / PIN)</div>
+              <div class="wiegand-id-val" id="scannedId">-</div>
+            </div>
+            <div class="btn-row" style="flex:0 0 auto;">
+              <button type="button" class="btn btn-secondary btn-sm" id="copyWiegandBtn" onclick="copyLastWiegandId()" disabled>Copy</button>
+              <button type="button" class="btn btn-primary btn-sm" id="adoptOwnerBtn" onclick="adoptScannedCode('owner')" disabled>+ Owner</button>
+              <button type="button" class="btn btn-primary btn-sm" id="adoptDeliveryBtn" onclick="adoptScannedCode('delivery')" disabled>+ Delivery</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Owner Codes</h2>
+            <span class="badge badge-ok">Mail + Parcel</span>
+          </div>
+          <p class="helper">Opens both mail and parcel compartments and resets One-Time Opening delivery blocks.</p>
+          <div id="ownerCodes"></div>
+          <button type="button" class="btn btn-secondary btn-block mt-10" onclick="addCode('owner')">+ Add Owner Code</button>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Delivery Codes</h2>
+            <span class="badge badge-muted">Parcel only</span>
+          </div>
+          <p class="helper">Opens only the parcel compartment for couriers and guests.</p>
+          <div id="deliveryCodes"></div>
+          <button type="button" class="btn btn-secondary btn-block mt-10" onclick="addCode('delivery')">+ Add Delivery Code</button>
         </div>
       </div>
+    </section>
 
-      <div class="setting-container" style="margin-top: 15px;">
-        <label for="mqttUseTls" style="margin-bottom: 0;">Use TLS for MQTT</label>
-        <label class="switch">
-          <input type="checkbox" id="mqttUseTls" name="mqttUseTls">
-          <span class="slider round"></span>
-        </label>
-      </div>
-      <p class="setting-explainer">Enable to encrypt the MQTT connection using TLS (MQTTS).</p>
+    <!-- TAB 3: SETTINGS -->
+    <section class="tab-panel" id="tab-settings">
+      <div class="grid-2">
+        <!-- Motor Control -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"/><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M12 2v2"/><path d="M12 22v-2"/><path d="m17 20.66-1-1.73"/><path d="M11 10.27 7 3.34"/></svg>
+              Motor Speed
+            </h2>
+            <span class="badge badge-muted">Slow-Decay PWM</span>
+          </div>
+          <p class="helper">Short breakaway kick followed by smooth slow-decay PWM with automatic stall boost. Lower speeds reduce Hall sensor overshoot.</p>
 
-      <div id="mqttTlsFields" style="display: none;">
-        <div class="setting-container">
-          <label for="mqttSkipCertVal" style="margin-bottom: 0;">Skip Certificate Validation (Insecure)</label>
-          <label class="switch">
-            <input type="checkbox" id="mqttSkipCertVal" name="mqttSkipCertVal">
-            <span class="slider round"></span>
-          </label>
+          <div class="field">
+            <label class="field-label" for="motorKickMs">
+              <span>Start Kick</span>
+              <span class="range-val"><output for="motorKickMs" id="motorKickMsValue">20</output> ms</span>
+            </label>
+            <input type="range" id="motorKickMs" name="motorKickMs" min="0" max="100" value="20">
+            <div class="range-hints"><span>Off (0 ms)</span><span>Strong (100 ms)</span></div>
+            <p class="helper" style="margin-bottom:0;">Full-power breakaway pulse (automatically halved during spring-assisted closing).</p>
+          </div>
+
+          <div class="field mt-14">
+            <label class="field-label" for="dutyCycleOpen">
+              <span>Opening Speed</span>
+              <span class="range-val"><output for="dutyCycleOpen" id="dutyCycleOpenValue">110</output></span>
+            </label>
+            <input type="range" id="dutyCycleOpen" name="dutyCycleOpen" min="20" max="255" value="110">
+            <div class="range-hints"><span>Slower (20)</span><span>Full power (255)</span></div>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="dutyCycleClose">
+              <span>Closing Speed</span>
+              <span class="range-val"><output for="dutyCycleClose" id="dutyCycleCloseValue">50</output></span>
+            </label>
+            <input type="range" id="dutyCycleClose" name="dutyCycleClose" min="20" max="180" value="50">
+            <div class="range-hints"><span>Slower (20)</span><span>Faster (180)</span></div>
+          </div>
+
+          <div class="info-strip">
+            <span>Last movement</span>
+            <strong id="lastStroke">-</strong>
+          </div>
         </div>
-        <p class="setting-explainer">Bypass verification of the broker's TLS certificate. Useful for self-signed certificates.</p>
 
-        <div id="mqttCaGroup">
-          <label for="mqttCa">MQTT Root CA Certificate (PEM):</label>
-          <textarea id="mqttCa" name="mqttCa" placeholder="-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"></textarea>
+        <!-- Behavior & Audio -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+              Behavior &amp; Audio
+            </h2>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="melodySelect">Opening Melody</label>
+            <div class="inline-group">
+              <select id="melodySelect" name="selectedMelody">
+                <option value="NONE">No Audio</option>
+                <option value="NOKIA_TUNE">Nokia Tune</option>
+                <option value="IMPERIAL_MARCH">Imperial March</option>
+                <option value="MARIO">Mario</option>
+                <option value="WINDOWS_XP_STARTUP">Windows XP Startup</option>
+                <option value="INTEL_INSIDE">Intel Inside</option>
+                <option value="TETRIS">Tetris</option>
+                <option value="GEMINI">Gemini</option>
+                <option value="NEON">Neon</option>
+              </select>
+              <button type="button" class="btn btn-secondary" onclick="playSelectedMelody()">Test</button>
+            </div>
+          </div>
+
+          <div class="toggle-row">
+            <div>
+              <label class="toggle-title" for="autolock">Safety Autolock</label>
+              <p class="toggle-desc">Re-engages the lock if the arm drifts off the Hall sensors (regular post-open locking always runs after 1 s).</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="autolock" name="autolock">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="toggle-row">
+            <div>
+              <label class="toggle-title" for="oneTimeOpening">One-Time Opening</label>
+              <p class="toggle-desc">Blocks subsequent delivery codes until an owner opens the mailbox.</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="oneTimeOpening" name="oneTimeOpening">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="toggle-row">
+            <div>
+              <label class="toggle-title" for="devMode">Dev Telemetry Log</label>
+              <p class="toggle-desc">Shows live buffered telemetry (Wiegand timing, Hall switches, motor, WiFi/MQTT) on the Dashboard. Applies immediately.</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="devMode" name="devMode">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- WiFi -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></svg>
+              WiFi
+            </h2>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="ssid">Network SSID</label>
+            <div class="inline-group">
+              <input type="text" id="ssid" name="ssid" placeholder="WiFi name">
+              <button type="button" id="wifiScanBtn" class="btn btn-secondary" onclick="scanWifi()">
+                <span id="wifiScanText">Scan</span>
+              </button>
+            </div>
+          </div>
+
+          <div id="wifiScanResult" style="display: none;">
+            <div class="wifi-list" id="wifiList"></div>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="password">Password</label>
+            <input type="password" id="password" name="password" placeholder="Leave blank to keep existing">
+          </div>
+        </div>
+
+        <!-- HTTP Callback -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              HTTP Callback
+            </h2>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="callbackUrl">Webhook URL</label>
+            <input type="text" id="callbackUrl" name="callbackUrl" placeholder="http://host/callback?comp={compartment}">
+            <p class="helper" style="margin-top:6px; margin-bottom:0;">Called asynchronously on open. Placeholder: <span class="mono">{compartment}</span> (<span class="mono">mail</span> or <span class="mono">parcel</span>).</p>
+          </div>
+
+          <div id="callbackTlsSection" class="tls-box" style="display: none;">
+            <div class="toggle-row" style="padding-top:0;">
+              <div>
+                <label class="toggle-title" for="callbackSkipCertVal">Skip HTTPS Cert Validation</label>
+                <p class="toggle-desc">Allow self-signed HTTPS certificates (insecure).</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="callbackSkipCertVal" name="callbackSkipCertVal">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div id="callbackCaGroup" class="field mt-10">
+              <label class="field-label" for="callbackCa">HTTPS Root CA (PEM)</label>
+              <textarea id="callbackCa" name="callbackCa" placeholder="-----BEGIN CERTIFICATE-----"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- MQTT -->
+        <div class="card span-2">
+          <div class="card-header">
+            <h2 class="card-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
+              MQTT
+            </h2>
+            <span class="badge badge-muted mono">paketkasten/state &middot; command</span>
+          </div>
+
+          <div class="two-col-fields">
+            <div class="field">
+              <label class="field-label" for="mqttServer">Broker Host</label>
+              <input type="text" id="mqttServer" name="mqttServer" placeholder="e.g. 192.168.1.10">
+            </div>
+            <div class="field">
+              <label class="field-label" for="mqttPort">Port</label>
+              <input type="number" id="mqttPort" name="mqttPort" value="1883">
+            </div>
+            <div class="field">
+              <label class="field-label" for="mqttUser">Username</label>
+              <input type="text" id="mqttUser" name="mqttUser">
+            </div>
+            <div class="field">
+              <label class="field-label" for="mqttPassword">Password</label>
+              <input type="password" id="mqttPassword" name="mqttPassword" placeholder="Leave blank to keep existing">
+            </div>
+          </div>
+
+          <div class="toggle-row mt-10">
+            <div>
+              <label class="toggle-title" for="mqttUseTls">Use TLS (MQTTS)</label>
+              <p class="toggle-desc">Encrypt the MQTT broker connection.</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="mqttUseTls" name="mqttUseTls">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div id="mqttTlsFields" class="tls-box" style="display: none;">
+            <div class="toggle-row" style="padding-top:0;">
+              <div>
+                <label class="toggle-title" for="mqttSkipCertVal">Skip Certificate Validation</label>
+                <p class="toggle-desc">Bypass broker certificate verification for self-signed certificates.</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="mqttSkipCertVal" name="mqttSkipCertVal">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div id="mqttCaGroup" class="field mt-10">
+              <label class="field-label" for="mqttCa">MQTT Root CA (PEM)</label>
+              <textarea id="mqttCa" name="mqttCa" placeholder="-----BEGIN CERTIFICATE-----"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Maintenance & Backup -->
+        <div class="card span-2">
+          <div class="card-header">
+            <h2 class="card-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+              System &amp; Maintenance
+            </h2>
+          </div>
+          <p class="helper">Export settings as JSON (WiFi and MQTT passwords are excluded for security), restore a backup, or update firmware over-the-air.</p>
+
+          <div class="btn-row">
+            <button type="button" class="btn btn-secondary" onclick="exportSettings()">Export JSON</button>
+            <button type="button" class="btn btn-secondary" onclick="triggerImportSettings()">Import JSON</button>
+            <a href="/update" class="btn btn-secondary">Firmware Update</a>
+            <button type="button" class="btn btn-danger-outline" onclick="factoryReset()">Factory Reset</button>
+          </div>
+
+          <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importSettings(event)">
+          <div id="importStatus" class="feedback"></div>
+
+          <div class="mt-14">
+            <button type="submit" class="btn btn-primary btn-block">Save Configuration &amp; Reboot</button>
+          </div>
         </div>
       </div>
-    </div>
-
-    <div class="box">
-      <h2>Motor Speed</h2>
-      <p class="setting-explainer" style="margin-top: 0; margin-bottom: 15px;">The drive mode applies to opening and closing. Slow modes reduce overshooting past the sensors. Changes take effect after saving (the device restarts).</p>
-
-      <label for="motorMode">Drive Mode:</label>
-      <select id="motorMode" name="motorMode">
-        <option value="0">Original (fast, 100 ms full-power boost)</option>
-        <option value="1">Slow &ndash; smooth (slow-decay PWM)</option>
-        <option value="2">Slow &ndash; steps (pulse/pause)</option>
-      </select>
-      <p class="setting-explainer" id="motorModeExplainer"></p>
-
-      <div id="motorKickGroup">
-        <div class="label">Start Kick: <output for="motorKickMs" id="motorKickMsValue">10</output> ms</div>
-        <input type="range" id="motorKickMs" name="motorKickMs" min="0" max="40" value="10">
-        <p class="setting-explainer" style="margin-top: -10px;">Short full-power pulse to break the worm gear loose. Increase if the motor hums but does not start; decrease if the first movement is still too fast.</p>
-      </div>
-
-      <div class="label">Opening Speed: <output for="dutyCycleOpen" id="dutyCycleOpenValue">120</output></div>
-      <input type="range" id="dutyCycleOpen" name="dutyCycleOpen" min="20" max="160" value="120">
-      <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--off-color); margin-top: -10px; margin-bottom: 15px;">
-        <span>Slower (20)</span>
-        <span>Faster (160)</span>
-      </div>
-
-      <div class="label">Closing Speed: <output for="dutyCycleClose" id="dutyCycleCloseValue">20</output></div>
-      <input type="range" id="dutyCycleClose" name="dutyCycleClose" min="20" max="100" value="20">
-      <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--off-color); margin-top: -10px; margin-bottom: 15px;">
-        <span>Slower (20)</span>
-        <span>Faster (100)</span>
-      </div>
-
-      <p class="setting-explainer">Last movement: <strong id="lastStroke">-</strong></p>
-
-      <button type="button" id="calibrateBtn" class="btn btn-primary icon-btn" style="margin-top: 15px;" onclick="startCalibration()">
-          <span class="icon">⚙️</span>
-          <span class="separator"></span>
-          <span class="text" id="calibrateBtnText">Auto Calibrate</span>
-      </button>
-      <div id="calibrationStatus" style="margin-top: 10px; font-weight: bold; display: none; text-align: center; padding: 10px; border-radius: 4px; border: 1px solid var(--light-border); background-color: var(--light-bg);" class="calibration-status-box"></div>
-    </div>
-
-    <div class="box">
-      <h2>Melody</h2>
-      <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
-        <select id="melodySelect" name="selectedMelody" style="margin-bottom: 0; flex: 1;">
-          <option value="NONE">No Audio</option>
-          <option value="NOKIA_TUNE">Nokia Tune</option>
-          <option value="IMPERIAL_MARCH">Imperial March</option>
-          <option value="MARIO">Mario</option>
-          <option value="WINDOWS_XP_STARTUP">Windows XP Startup</option>
-          <option value="INTEL_INSIDE">Intel Inside</option>
-          <option value="TETRIS">Tetris</option>
-          <option value="GEMINI">Gemini</option>
-        </select>
-        <button type="button" class="btn btn-primary icon-btn" onclick="playSelectedMelody()" style="margin-top: 0; width: auto;">
-            <span class="icon">🎵</span>
-            <span class="separator"></span>
-            <span class="text">Play Melody</span>
-        </button>
-      </div>
-    </div>
-
-    <div class="box">
-      <h2>Settings</h2>
-      <div class="setting-container">
-        <label for="autolock" style="margin-bottom: 0;">Default Autolock</label>
-        <label class="switch">
-          <input type="checkbox" id="autolock" name="autolock">
-          <span class="slider round"></span>
-        </label>
-      </div>
-      <p class="setting-explainer">Automatically locks the mailbox after 10 seconds of inactivity or when the door is closed.</p>
-
-      <div class="setting-container">
-        <label for="oneTimeOpening" style="margin-bottom: 0;">One-Time Opening</label>
-        <label class="switch">
-          <input type="checkbox" id="oneTimeOpening" name="oneTimeOpening">
-          <span class="slider round"></span>
-        </label>
-      </div>
-      <p class="setting-explainer">Restricts subsequent deliveries until the owner opens the mailbox.</p>
-    </div>
-
-    <div class="box">
-      <h2>Backup & Restore</h2>
-      <p class="setting-explainer">Export settings to a local JSON file or import settings from a previously saved backup. Note: WiFi and MQTT passwords are not included in the export for security reasons.</p>
-      <div style="display: flex; gap: 15px; margin-bottom: 10px;">
-        <button type="button" class="btn btn-primary icon-btn" onclick="exportSettings()" style="margin-top: 0; flex: 1;">
-            <span class="icon">📥</span>
-            <span class="separator"></span>
-            <span class="text">Export Settings</span>
-        </button>
-        <button type="button" class="btn btn-primary icon-btn" onclick="triggerImportSettings()" style="margin-top: 0; flex: 1;">
-            <span class="icon">📤</span>
-            <span class="separator"></span>
-            <span class="text">Import Settings</span>
-        </button>
-      </div>
-      <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importSettings(event)">
-      <div id="importStatus" style="margin-top: 10px; font-weight: bold; display: none; text-align: center; padding: 10px; border-radius: 4px; border: 1px solid var(--light-border); background-color: var(--light-bg);" class="calibration-status-box"></div>
-    </div>
-
-    <div class="box" style="margin-bottom: 0;">
-      <button type="submit" class="btn btn-primary icon-btn">
-          <span class="icon">💾</span>
-          <span class="separator"></span>
-          <span class="text">Save Configuration & Reboot</span>
-      </button>
-      <a href="/update" class="btn btn-primary icon-btn">
-          <span class="icon">🔄</span>
-          <span class="separator"></span>
-          <span class="text">Firmware Update</span>
-      </a>
-      <button type="button" class="btn btn-danger icon-btn" onclick="factoryReset()">
-          <span class="icon">⚠️</span>
-          <span class="separator"></span>
-          <span class="text">Factory Reset</span>
-      </button>
-    </div>
+    </section>
   </form>
+
+</div>
+
+<!-- Sticky Save Dock (appears automatically when unsaved changes exist) -->
+<div class="save-dock" id="saveDock">
+  <div class="save-dock-inner">
+    <div class="save-dock-msg">
+      <span class="dot dot-warn"></span>
+      <span>Unsaved changes</span>
+    </div>
+    <button type="button" class="btn btn-primary btn-sm" onclick="triggerConfigSubmit()">Save &amp; Reboot</button>
+  </div>
 </div>
 
 <script>
   let currentOneTimeCodes = [];
+  let lastRenderedOtcJson = null;
+  let pendingImportedOtc = false;
+  let actionFeedbackTimer = null;
+  let lastWifiScanRunning = false;
+  let wifiListRendered = false;
+  let devTelemetryEnabled = false;
+  let lastLogSeq = 0;
+  let telemetryRawLines = [];
+  let telemetryFetchInFlight = false;
+  let lastScannedIdValue = '';
+  let configLoaded = false;
 
-  function startCalibration() {
-    if (confirm("Warning: Auto calibration will operate the lock motor repeatedly. Make sure the mailbox mechanics can move freely. Start calibration?")) {
-      fetch('/calibrate', { method: 'POST' })
-      .then(response => {
-        if (!response.ok) {
-          response.text().then(text => alert('Failed to start calibration: ' + text));
-        }
-      })
-      .catch(error => console.error('Error starting calibration:', error));
-    }
+  // Theme Toggle
+  document.getElementById('themeToggle').addEventListener('click', function() {
+    const root = document.documentElement;
+    const current = root.getAttribute('data-theme');
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isCurrentlyDark = current ? (current === 'dark') : prefersDark;
+    const next = isCurrentlyDark ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    localStorage.setItem('pk_theme', next);
+  });
+
+  // Tab Navigation
+  function switchTab(tabName) {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      const active = btn.dataset.tab === tabName;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    document.querySelectorAll('.tab-panel').forEach(panel => {
+      panel.classList.toggle('active', panel.id === 'tab-' + tabName);
+    });
+  }
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
+
+  function markDirty() {
+    if (!configLoaded) return;
+    document.getElementById('saveDock').classList.add('visible');
+  }
+
+  document.getElementById('configForm').addEventListener('input', function(e) {
+    if (e.target && e.target.id === 'devMode') return;
+    markDirty();
+  });
+  document.getElementById('configForm').addEventListener('change', function(e) {
+    if (e.target && (e.target.id === 'devMode' || e.target.id === 'importFile')) return;
+    markDirty();
+  });
+
+  function showActionFeedback(message, isError) {
+    const el = document.getElementById('actionFeedback');
+    if (!el) return;
+    el.className = 'feedback ' + (isError ? 'err' : 'ok');
+    el.textContent = message;
+    clearTimeout(actionFeedbackTimer);
+    actionFeedbackTimer = setTimeout(() => { el.className = 'feedback'; }, 4000);
   }
 
   function openMailbox(type) {
     fetch('/open', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: 'type=' + type
     })
-    .then(response => {
+    .then(async response => {
+      const txt = await response.text();
       if (!response.ok) {
-        console.error('Error opening mailbox');
+        showActionFeedback(txt || 'Error opening mailbox', true);
+      } else {
+        showActionFeedback(type === 'parcel' ? 'Opening parcel compartment...' : 'Opening mail compartment...', false);
       }
     })
-    .catch(error => console.error('Error opening mailbox:', error));
+    .catch(() => showActionFeedback('Connection error', true));
   }
 
-  let lastWifiScanRunning = false;
-  let wifiListRendered = false;
+  function lockMailbox() {
+    fetch('/lock', { method: 'POST' })
+    .then(async response => {
+      const txt = await response.text();
+      if (!response.ok) {
+        showActionFeedback(txt || 'Cannot lock right now', true);
+      } else {
+        showActionFeedback('Locking / homing mailbox...', false);
+      }
+    })
+    .catch(() => showActionFeedback('Connection error', true));
+  }
+
+  function resetMotorError() {
+    fetch('/reset-error', { method: 'POST' })
+    .then(async response => {
+      const txt = await response.text();
+      if (!response.ok) {
+        showActionFeedback(txt || 'Cannot clear error right now', true);
+      } else {
+        showActionFeedback('Motor error cleared (state set to LOCKED).', false);
+        fetchDiagnostics();
+      }
+    })
+    .catch(() => showActionFeedback('Connection error', true));
+  }
+
+  function formatUptime(ms) {
+    const totalSec = Math.floor((ms || 0) / 1000);
+    const d = Math.floor(totalSec / 86400);
+    const h = Math.floor((totalSec % 86400) / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    if (d > 0) return `${d}d ${h}h ${m}m`;
+    if (h > 0) return `${h}h ${m}m ${s}s`;
+    if (m > 0) return `${m}m ${s}s`;
+    return `${s}s`;
+  }
+
+  function formatLogMs(ms) {
+    return ((ms || 0) / 1000).toFixed(3).padStart(9, ' ') + 's';
+  }
+
+  function setTelemetryVisibility(enabled) {
+    devTelemetryEnabled = !!enabled;
+    const box = document.getElementById('telemetryBox');
+    if (box) box.style.display = devTelemetryEnabled ? 'block' : 'none';
+    const chip = document.getElementById('devChip');
+    if (chip) chip.style.display = devTelemetryEnabled ? 'inline-flex' : 'none';
+    if (devTelemetryEnabled) fetchDiagnostics();
+  }
+
+  function jumpToTelemetry() {
+    switchTab('dashboard');
+    const box = document.getElementById('telemetryBox');
+    if (box) box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function triggerConfigSubmit() {
+    const form = document.getElementById('configForm');
+    if (typeof form.requestSubmit === 'function') {
+      form.requestSubmit();
+    } else {
+      form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+    }
+  }
+
+  function renderTelemetryPlaceholder(text) {
+    const con = document.getElementById('telemetryConsole');
+    if (con) con.textContent = text;
+  }
+
+  function fetchTelemetryLogs() {
+    if (!devTelemetryEnabled || telemetryFetchInFlight) return;
+    telemetryFetchInFlight = true;
+    fetch('/logs?since=' + lastLogSeq)
+      .then(r => r.json())
+      .then(data => {
+        telemetryFetchInFlight = false;
+        const latest = Number(data.latest_seq || 0);
+        if (latest < lastLogSeq) {
+          lastLogSeq = 0;
+          telemetryRawLines = [];
+          renderTelemetryPlaceholder('Device restarted — reloading telemetry...');
+          fetchTelemetryLogs();
+          return;
+        }
+        const entries = Array.isArray(data.entries) ? data.entries : [];
+        if (entries.length === 0) {
+          if (telemetryRawLines.length === 0) renderTelemetryPlaceholder('No telemetry events buffered yet.');
+          return;
+        }
+        const con = document.getElementById('telemetryConsole');
+        if (!con) return;
+        const wasNearBottom = (con.scrollHeight - con.scrollTop - con.clientHeight) < 30;
+        if (telemetryRawLines.length === 0) con.innerHTML = '';
+        entries.forEach(entry => {
+          const seq = Number(entry.seq || 0);
+          if (seq <= lastLogSeq) return;
+          lastLogSeq = seq;
+          const ts = formatLogMs(entry.ms);
+          const cat = String(entry.cat || 'SYS').toUpperCase();
+          const msg = String(entry.msg || '');
+          telemetryRawLines.push(`[${ts.trim()}][${cat}] ${msg}`);
+          const line = document.createElement('div');
+          line.className = 'log-line';
+          line.innerHTML = `<span class="log-ts">${escapeHtml(ts)}</span> <span class="log-cat log-cat-${escapeHtml(cat)}">[${escapeHtml(cat)}]</span> ${escapeHtml(msg)}`;
+          con.appendChild(line);
+        });
+        while (telemetryRawLines.length > 200) {
+          telemetryRawLines.shift();
+          if (con.firstChild) con.removeChild(con.firstChild);
+        }
+        if (wasNearBottom) con.scrollTop = con.scrollHeight;
+      })
+      .catch(() => { telemetryFetchInFlight = false; });
+  }
+
+  function clearTelemetryLog() {
+    fetch('/logs/clear', { method: 'POST' })
+      .then(r => {
+        if (r.ok) {
+          lastLogSeq = 0;
+          telemetryRawLines = [];
+          renderTelemetryPlaceholder('Log cleared.');
+        }
+      });
+  }
+
+  function copyToClipboard(text, btnEl, defaultLabel) {
+    const done = () => {
+      if (!btnEl) return;
+      btnEl.textContent = 'Copied!';
+      setTimeout(() => { btnEl.textContent = defaultLabel; }, 1800);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopyText(text, done));
+    } else {
+      fallbackCopyText(text, done);
+    }
+  }
+
+  function fallbackCopyText(text, onSuccess) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand('copy');
+      if (onSuccess) onSuccess();
+    } catch (e) {}
+    ta.remove();
+  }
+
+  function copyTelemetryLog() {
+    copyToClipboard(telemetryRawLines.join('\n'), document.getElementById('copyLogText'), 'Copy Log');
+  }
+
+  function copyLastWiegandId() {
+    if (!lastScannedIdValue) return;
+    copyToClipboard(lastScannedIdValue, document.getElementById('copyWiegandBtn'), 'Copy');
+  }
+
+  function adoptScannedCode(type) {
+    if (!lastScannedIdValue) return;
+    const entry = createCodeEntry(type, '', lastScannedIdValue);
+    markDirty();
+    const labelInput = entry.querySelector('.label-input');
+    if (labelInput) labelInput.focus();
+  }
+
+  function updateHeroState(state) {
+    const pill = document.getElementById('statePill');
+    const dot = document.getElementById('stateDot');
+    const text = document.getElementById('mailboxState');
+    const errBanner = document.getElementById('errorBanner');
+    text.textContent = state || '-';
+    pill.className = 'state-pill';
+    dot.className = 'dot';
+    if (state === 'LOCKED') {
+      pill.classList.add('is-locked');
+      dot.classList.add('dot-ok');
+    } else if (state === 'MOTOR_ERROR') {
+      pill.classList.add('is-error');
+      dot.classList.add('dot-err');
+    } else if (state === 'PARCEL_OPEN' || state === 'MAIL_OPEN') {
+      pill.classList.add('is-open');
+      dot.classList.add('dot-warn');
+    } else if (state && state !== '-') {
+      pill.classList.add('is-moving');
+      dot.classList.add('dot-warn');
+    }
+    errBanner.classList.toggle('visible', state === 'MOTOR_ERROR');
+  }
 
   function fetchDiagnostics() {
     fetch('/diagnostics')
-      .then(response => response.json())
+      .then(r => r.json())
       .then(data => {
-        document.getElementById('mailboxState').textContent = data.mailbox_state || '-';
-        document.getElementById('scannedId').textContent = data.wiegand_id || '-';
+        updateHeroState(data.mailbox_state);
+        lastScannedIdValue = data.wiegand_id || '';
+        document.getElementById('scannedId').textContent = lastScannedIdValue || '-';
+        document.getElementById('heroScannedId').textContent = lastScannedIdValue || '-';
+        const hasId = lastScannedIdValue.length > 0;
+        ['copyWiegandBtn', 'adoptOwnerBtn', 'adoptDeliveryBtn'].forEach(id => {
+          const btn = document.getElementById(id);
+          if (btn) btn.disabled = !hasId;
+        });
         document.getElementById('firmwareVersion').textContent = data.firmware_version || '-';
         document.getElementById('uiVersion').textContent = "UI_VERSION_PLACEHOLDER";
-        
-        updateSwitchStatus('closedSwitch', data.closed_switch);
-        updateSwitchStatus('parcelSwitch', data.parcel_switch);
-        updateSwitchStatus('mailSwitch', data.mail_switch);
 
-        const lastStrokeEl = document.getElementById('lastStroke');
-        if (lastStrokeEl && data.last_stroke_ms) {
-          let strokeText = `${data.last_stroke_from} \u2192 ${data.last_stroke_to} in ${data.last_stroke_ms} ms`;
-          if (data.last_stroke_escalated) {
-            strokeText += ' (speed too low, stall boost was needed)';
-          }
-          lastStrokeEl.textContent = strokeText;
+        document.getElementById('nodeClosed').classList.toggle('active', !!data.closed_switch);
+        document.getElementById('nodeParcel').classList.toggle('active', !!data.parcel_switch);
+        document.getElementById('nodeMail').classList.toggle('active', !!data.mail_switch);
+
+        // Header WiFi & MQTT chips
+        const wifiDot = document.getElementById('wifiDot');
+        const wifiTxt = document.getElementById('wifiChipText');
+        if (data.wifi_rssi) {
+          wifiDot.className = 'dot dot-ok';
+          wifiTxt.textContent = `WiFi ${rssiToPercentage(data.wifi_rssi)}%`;
+        } else {
+          wifiDot.className = 'dot dot-warn';
+          wifiTxt.textContent = 'Setup AP';
         }
 
-        const dbElement = document.getElementById('deliveryBlocked');
+        const mqttDot = document.getElementById('mqttDot');
+        const mqttTxt = document.getElementById('mqttChipText');
+        mqttDot.className = 'dot ' + (data.mqtt_connected ? 'dot-ok' : '');
+        mqttTxt.textContent = data.mqtt_connected ? 'MQTT' : 'MQTT off';
+
+        // Delivery status
         const dbText = document.getElementById('deliveryBlockedText');
-        if (dbElement && dbText) {
-          if (!data.one_time_opening) {
-            dbElement.classList.remove('status-on');
-            dbElement.classList.add('status-off');
-            dbText.textContent = 'Disabled';
-          } else if (data.delivery_blocked) {
-            dbElement.classList.remove('status-off');
-            dbElement.classList.add('status-on');
-            dbText.textContent = 'Blocked';
-          } else {
-            dbElement.classList.remove('status-on');
-            dbElement.classList.add('status-off');
-            dbText.textContent = 'Ready';
-          }
+        if (!data.one_time_opening) {
+          dbText.textContent = 'Unlimited';
+        } else {
+          dbText.textContent = data.delivery_blocked ? 'Blocked' : 'Ready';
         }
 
-        // Update WiFi scan UI status from diagnostics
+        // Last stroke
+        if (data.last_stroke_from && data.last_stroke_to &&
+            (data.last_stroke_ms > 0 || data.last_stroke_from !== data.last_stroke_to)) {
+          let strokeText = `${data.last_stroke_from} \u2192 ${data.last_stroke_to} (${data.last_stroke_ms} ms)`;
+          if (data.last_stroke_escalated) strokeText += ' \u2022 stall boost';
+          document.getElementById('lastStroke').textContent = strokeText;
+          document.getElementById('lastStrokeDash').textContent = strokeText;
+        }
+
+        // Sync One-Time Codes
+        if (!pendingImportedOtc && typeof data.one_time_codes === 'string' && data.one_time_codes !== lastRenderedOtcJson) {
+          try {
+            const parsedOtc = JSON.parse(data.one_time_codes || '[]');
+            lastRenderedOtcJson = data.one_time_codes;
+            renderOneTimeCodes(parsedOtc);
+          } catch (e) {}
+        }
+
+        // Telemetry stats + log polling when Dev Mode active
+        if (devTelemetryEnabled) {
+          document.getElementById('telUptime').textContent = formatUptime(data.uptime_ms);
+          document.getElementById('telHeap').textContent = data.free_heap ? `${Math.round(data.free_heap / 1024)} KB` : '-';
+          const rssiStr = data.wifi_rssi ? `${data.wifi_rssi} dBm` : 'AP';
+          document.getElementById('telNet').textContent = `${rssiStr} | ${data.mqtt_connected ? 'MQTT OK' : 'MQTT off'}`;
+          document.getElementById('telWiegandReader').textContent =
+            `${data.wiegand_attached ? 'Attached' : 'Detached'} (glitches: ${Number(data.wiegand_glitches || 0)})`;
+          const bits = Number(data.wiegand_bits || 0);
+          document.getElementById('telWiegandFrame').textContent = bits > 0
+            ? `${bits} bits | gap ${data.wiegand_min_gap_us}..${data.wiegand_max_gap_us} \u00B5s | dur ${data.wiegand_duration_ms} ms | rej ${data.wiegand_rejected}`
+            : 'No frame received yet';
+          fetchTelemetryLogs();
+        }
+
+        // WiFi scan state
         const scanBtn = document.getElementById('wifiScanBtn');
-        const scanIcon = document.getElementById('wifiScanIcon');
         const scanText = document.getElementById('wifiScanText');
         const wifiScanResult = document.getElementById('wifiScanResult');
-
         if (data.wifi_scan_running) {
           scanBtn.disabled = true;
-          scanIcon.textContent = '⏳';
           scanText.textContent = 'Scanning...';
           wifiScanResult.style.display = 'block';
-        } else {
-          if (lastWifiScanRunning || (!wifiListRendered && data.wifi_networks && data.wifi_networks.length > 0)) {
-            scanBtn.disabled = false;
-            scanIcon.textContent = '🔍';
-            scanText.textContent = 'Scan';
-            renderWifiList(data.wifi_networks);
-            wifiListRendered = true;
-          }
+        } else if (lastWifiScanRunning || (!wifiListRendered && data.wifi_networks && data.wifi_networks.length > 0)) {
+          scanBtn.disabled = false;
+          scanText.textContent = 'Scan';
+          renderWifiList(data.wifi_networks);
+          wifiListRendered = true;
         }
         lastWifiScanRunning = !!data.wifi_scan_running;
-
-        // Update calibration UI
-        const calActive = data.calibration_active;
-        const calStep = data.calibration_step;
-        const calCandidate = data.calibration_candidate;
-        
-        const calibrateBtn = document.getElementById('calibrateBtn');
-        const calStatus = document.getElementById('calibrationStatus');
-
-        if (calActive) {
-          if (calibrateBtn) calibrateBtn.disabled = true;
-          if (calStatus) {
-            calStatus.style.display = 'block';
-            let stepText = '';
-            switch (calStep) {
-              case 1: stepText = 'Closing door to prepare for OPEN test...'; break;
-              case 2: stepText = 'Cooldown before testing OPEN...'; break;
-              case 3: stepText = `Testing OPEN duty cycle at ${calCandidate}...`; break;
-              case 4: stepText = 'Cooldown before testing CLOSE...'; break;
-              case 5: stepText = 'Opening door to prepare for CLOSE test...'; break;
-              case 6: stepText = `Testing CLOSE duty cycle at ${calCandidate}...`; break;
-              default: stepText = 'Calibrating...'; break;
-            }
-            calStatus.textContent = stepText;
-          }
-        } else {
-          if (calibrateBtn) calibrateBtn.disabled = false;
-          if (calStatus) {
-            if (calStep === 7) {
-              calStatus.style.display = 'block';
-              calStatus.textContent = 'Calibration completed successfully!';
-              // Refresh slider values after calibration completes
-              if (window.calCompletedTimeout === undefined) {
-                window.calCompletedTimeout = setTimeout(() => {
-                  fetch('/config')
-                    .then(response => response.json())
-                    .then(config => {
-                      document.getElementById('dutyCycleOpen').value = config.dutyCycleOpen;
-                      document.getElementById('dutyCycleOpenValue').value = config.dutyCycleOpen;
-                      document.getElementById('dutyCycleClose').value = config.dutyCycleClose;
-                      document.getElementById('dutyCycleCloseValue').value = config.dutyCycleClose;
-                      delete window.calCompletedTimeout;
-                    });
-                }, 1000);
-              }
-            } else if (calStep === 8) {
-              calStatus.style.display = 'block';
-              calStatus.textContent = 'Calibration failed! Check motor state.';
-            } else {
-              calStatus.style.display = 'none';
-            }
-          }
-        }
       })
-      .catch(error => console.error('Error fetching diagnostics:', error));
-  }
-  
-  function updateSwitchStatus(elementId, status) {
-    const indicator = document.getElementById(elementId);
-    const text = document.getElementById(elementId + 'Text');
-    if (status) {
-      indicator.classList.remove('status-off');
-      indicator.classList.add('status-on');
-      text.textContent = 'Active';
-    } else {
-      indicator.classList.remove('status-on');
-      indicator.classList.add('status-off');
-      text.textContent = 'Inactive';
-    }
+      .catch(() => {});
   }
 
   setInterval(fetchDiagnostics, 2000);
@@ -886,155 +1797,139 @@
 
   function createCodeEntry(type, label = '', code = '') {
     const container = document.getElementById(type + 'Codes');
-    const codeDiv = document.createElement('div');
-    codeDiv.className = 'code-entry';
-    codeDiv.innerHTML = `
-      <input type="text" placeholder="Label" class="label-input" value="${label}" />
-      <input type="text" placeholder="HEX Code" class="code-input" value="${code}" />
-      <button type="button" class="remove-btn" onclick="removeCode(this)">&times;</button>
+    const row = document.createElement('div');
+    row.className = 'code-entry';
+    row.innerHTML = `
+      <input type="text" placeholder="Label" class="label-input" value="${escapeHtml(String(label))}">
+      <input type="text" placeholder="HEX / PIN" class="code-input mono" value="${escapeHtml(String(code))}">
+      <button type="button" class="del-btn" title="Remove" onclick="removeCode(this)">&times;</button>
     `;
-    container.appendChild(codeDiv);
+    container.appendChild(row);
+    return row;
   }
-  
+
   function addCode(type) {
-    createCodeEntry(type);
+    const row = createCodeEntry(type);
+    markDirty();
+    const input = row.querySelector('.label-input');
+    if (input) input.focus();
   }
 
   function removeCode(button) {
     button.parentElement.remove();
+    markDirty();
   }
 
-  document.querySelector('form').addEventListener('submit', function(e) {
+  document.getElementById('configForm').addEventListener('submit', function(e) {
     e.preventDefault();
 
     const ownerCodes = [];
     document.querySelectorAll('#ownerCodes .code-entry').forEach(entry => {
-      const label = entry.querySelector('.label-input').value;
-      const code = entry.querySelector('.code-input').value;
-      if (code) { // Only add if code is not empty
-        ownerCodes.push({ label: label, code: code });
-      }
+      const label = entry.querySelector('.label-input').value.trim();
+      const code = entry.querySelector('.code-input').value.trim().toUpperCase();
+      if (code) ownerCodes.push({ label, code });
     });
     document.getElementById('ownerCodesJson').value = JSON.stringify(ownerCodes);
 
     const deliveryCodes = [];
     document.querySelectorAll('#deliveryCodes .code-entry').forEach(entry => {
-      const label = entry.querySelector('.label-input').value;
-      const code = entry.querySelector('.code-input').value;
-      if (code) { // Only add if code is not empty
-        deliveryCodes.push({ label: label, code: code });
-      }
+      const label = entry.querySelector('.label-input').value.trim();
+      const code = entry.querySelector('.code-input').value.trim().toUpperCase();
+      if (code) deliveryCodes.push({ label, code });
     });
     document.getElementById('deliveryCodesJson').value = JSON.stringify(deliveryCodes);
+    document.getElementById('oneTimeCodesJson').value = pendingImportedOtc ? JSON.stringify(currentOneTimeCodes) : '';
 
-    const formData = new FormData(e.target);
-    const data = new URLSearchParams(formData);
-
-    fetch('/save', {
-      method: 'POST',
-      body: data
-    })
-    .then(response => {
-      if (response.ok) {
-        document.querySelector('.container').innerHTML = `
-          <div class="box">
-            <h2>Configuration Saved</h2>
-            <p>The new configuration has been saved successfully.</p>
-            <p>The device is now restarting. You will be redirected to the main page in a few seconds.</p>
-            <p>If you changed the WiFi settings, this redirect might not work.</p>
-          </div>
-        `;
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 5000);
-      } else {
-        alert('Error saving configuration.');
-      }
-    })
-    .catch(error => {
-      console.error('Error saving configuration:', error);
-      alert('Error saving configuration.');
-    });
+    const data = new URLSearchParams(new FormData(e.target));
+    fetch('/save', { method: 'POST', body: data })
+      .then(response => {
+        if (response.ok) {
+          document.getElementById('saveDock').classList.remove('visible');
+          document.querySelector('.app').innerHTML = `
+            <div class="card" style="max-width:480px; margin: 40px auto; text-align:center;">
+              <h2 style="margin-top:0;">Configuration Saved</h2>
+              <p class="helper">The device is restarting. You will be redirected automatically in a few seconds.</p>
+              <p class="helper">If WiFi settings changed, connect to the new network and reopen the device IP.</p>
+            </div>
+          `;
+          setTimeout(() => { window.location.href = '/'; }, 5000);
+        } else {
+          alert('Error saving configuration.');
+        }
+      })
+      .catch(() => alert('Error saving configuration.'));
   });
 
   function playSelectedMelody() {
     const selectedMelody = document.getElementById('melodySelect').value;
     fetch('/playMelody', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: 'melody=' + selectedMelody
-    })
-    .then(response => {
-      if (!response.ok) {
-        console.error('Error playing melody');
-      }
-    })
-    .catch(error => console.error('Error playing melody:', error));
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'melody=' + encodeURIComponent(selectedMelody)
+    });
   }
 
   function loadConfig() {
     fetch('/config')
-      .then(response => response.json())
+      .then(r => r.json())
       .then(data => {
         document.getElementById('ssid').value = data.ssid || '';
         document.getElementById('mqttServer').value = data.mqttServer || '';
         document.getElementById('mqttPort').value = data.mqttPort || 1883;
         document.getElementById('mqttUser').value = data.mqttUser || '';
-        document.getElementById('dutyCycleOpen').value = data.dutyCycleOpen || 120;
-        document.getElementById('dutyCycleOpenValue').value = data.dutyCycleOpen || 120;
-        document.getElementById('dutyCycleClose').value = data.dutyCycleClose || 20;
-        document.getElementById('dutyCycleCloseValue').value = data.dutyCycleClose || 20;
-        document.getElementById('motorMode').value = String(data.motorMode ?? 0);
-        document.getElementById('motorKickMs').value = data.motorKickMs ?? 10;
-        document.getElementById('motorKickMsValue').value = data.motorKickMs ?? 10;
-        updateMotorModeUi();
-        document.getElementById('melodySelect').value = data.selectedMelody || 'NOKIA_TUNE'; // Default to Nokia Tune
+        document.getElementById('dutyCycleOpen').value = data.dutyCycleOpen || 110;
+        document.getElementById('dutyCycleOpenValue').value = data.dutyCycleOpen || 110;
+        document.getElementById('dutyCycleClose').value = data.dutyCycleClose || 50;
+        document.getElementById('dutyCycleCloseValue').value = data.dutyCycleClose || 50;
+        document.getElementById('motorKickMs').value = data.motorKickMs ?? 20;
+        document.getElementById('motorKickMsValue').value = data.motorKickMs ?? 20;
+        document.getElementById('melodySelect').value = data.selectedMelody || 'NOKIA_TUNE';
         document.getElementById('callbackUrl').value = data.callbackUrl || '';
-        document.getElementById('autolock').checked = data.autolock || false;
-        document.getElementById('oneTimeOpening').checked = data.oneTimeOpening || false;
-        document.getElementById('mqttUseTls').checked = data.mqttUseTls || false;
-        document.getElementById('mqttSkipCertVal').checked = data.mqttSkipCertVal || false;
-        document.getElementById('callbackSkipCertVal').checked = data.callbackSkipCertVal || false;
+        document.getElementById('autolock').checked = !!data.autolock;
+        document.getElementById('oneTimeOpening').checked = !!data.oneTimeOpening;
+        document.getElementById('devMode').checked = !!data.devMode;
+        setTelemetryVisibility(!!data.devMode);
+        document.getElementById('mqttUseTls').checked = !!data.mqttUseTls;
+        document.getElementById('mqttSkipCertVal').checked = !!data.mqttSkipCertVal;
+        document.getElementById('callbackSkipCertVal').checked = !!data.callbackSkipCertVal;
         document.getElementById('mqttCa').value = data.mqttCa || '';
         document.getElementById('callbackCa').value = data.callbackCa || '';
 
         updateCallbackTlsVisibility();
         updateMqttTlsVisibility();
 
-        const ownerCodes = JSON.parse(data.ownerCodes || '[]');
-        ownerCodes.forEach(code => createCodeEntry('owner', code.label, code.code));
+        document.getElementById('ownerCodes').innerHTML = '';
+        JSON.parse(data.ownerCodes || '[]').forEach(c => createCodeEntry('owner', c.label, c.code));
 
-        const deliveryCodes = JSON.parse(data.deliveryCodes || '[]');
-        deliveryCodes.forEach(code => createCodeEntry('delivery', code.label, code.code));
+        document.getElementById('deliveryCodes').innerHTML = '';
+        JSON.parse(data.deliveryCodes || '[]').forEach(c => createCodeEntry('delivery', c.label, c.code));
 
-        const otcList = JSON.parse(data.oneTimeCodes || '[]');
-        renderOneTimeCodes(otcList);
+        const otcRaw = data.oneTimeCodes || '[]';
+        lastRenderedOtcJson = otcRaw;
+        renderOneTimeCodes(JSON.parse(otcRaw));
+
+        configLoaded = true;
       })
-      .catch(error => console.error('Error fetching config:', error));
+      .catch(() => { configLoaded = true; });
   }
 
   function renderOneTimeCodes(otcList) {
     currentOneTimeCodes = otcList;
     const tbody = document.getElementById('oneTimeCodesList');
     tbody.innerHTML = '';
-    if (otcList.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 10px; color: var(--off-color);">No one-time codes configured</td></tr>`;
+    if (!otcList || otcList.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" class="muted" style="text-align:center; padding:14px;">No one-time codes configured</td></tr>`;
       return;
     }
     otcList.forEach((otc, index) => {
       const row = document.createElement('tr');
-      row.style.borderBottom = '1px solid var(--light-border)';
-      const statusText = otc.redeemed ? 'Redeemed' : 'Active';
-      const statusClass = otc.redeemed ? 'status-off' : 'status-on';
+      const badgeClass = otc.redeemed ? 'badge-muted' : 'badge-ok';
+      const statusText = otc.redeemed ? 'Used' : 'Active';
       row.innerHTML = `
-        <td style="padding: 10px 5px;">${escapeHtml(otc.label)}</td>
-        <td style="padding: 10px 5px; font-family: monospace;">${escapeHtml(otc.code)}</td>
-        <td style="padding: 10px 5px;"><span class="status-indicator ${statusClass}"></span>${statusText}</td>
-        <td style="padding: 10px 5px; text-align: right;">
-          <button type="button" class="remove-btn" style="display: inline-flex;" onclick="deleteOneTimeCode(${index})">&times;</button>
-        </td>
+        <td>${escapeHtml(String(otc.label || ''))}</td>
+        <td class="mono">${escapeHtml(String(otc.code || ''))}</td>
+        <td><span class="badge ${badgeClass}">${statusText}</span></td>
+        <td style="text-align:right;"><button type="button" class="del-btn" title="Delete" onclick="deleteOneTimeCode(${index})">&times;</button></td>
       `;
       tbody.appendChild(row);
     });
@@ -1050,11 +1945,10 @@
   }
 
   function generateRandomOtc() {
-    const chars = '0123456789';
-    let code = '';
-    for (let i = 0; i < 6; i++) {
-      code += chars[Math.floor(Math.random() * 10)];
-    }
+    const first = '123456789';
+    const digits = '0123456789';
+    let code = first[Math.floor(Math.random() * first.length)];
+    for (let i = 1; i < 6; i++) code += digits[Math.floor(Math.random() * 10)];
     document.getElementById('newOtcCode').value = code;
   }
 
@@ -1063,21 +1957,16 @@
     const codeInput = document.getElementById('newOtcCode');
     const label = labelInput.value.trim();
     const code = codeInput.value.trim().toUpperCase();
-    
     if (!label || !code) {
-      alert('Please enter both label and code');
+      alert('Please enter both label and code.');
       return;
     }
-    
-    // Check for duplicate code
-    if (currentOneTimeCodes.some(otc => otc.code === code)) {
-      alert('Code already exists');
+    if (currentOneTimeCodes.some(otc => String(otc.code || '').toUpperCase() === code)) {
+      alert('This code already exists.');
       return;
     }
-    
-    currentOneTimeCodes.push({ label: label, code: code, redeemed: false });
+    currentOneTimeCodes.push({ label, code, redeemed: false });
     saveOneTimeCodes(currentOneTimeCodes);
-    
     labelInput.value = '';
     codeInput.value = '';
   }
@@ -1090,93 +1979,69 @@
   }
 
   function saveOneTimeCodes(otcList) {
+    const serialized = JSON.stringify(otcList);
     fetch('/save-onetime-codes', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: 'oneTimeCodes=' + encodeURIComponent(JSON.stringify(otcList))
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'oneTimeCodes=' + encodeURIComponent(serialized)
     })
-    .then(response => {
-      if (response.ok) {
+    .then(r => {
+      if (r.ok) {
+        pendingImportedOtc = false;
+        lastRenderedOtcJson = serialized;
         renderOneTimeCodes(otcList);
       } else {
-        alert('Failed to save one-time codes');
+        alert('Failed to save one-time codes.');
       }
     })
-    .catch(error => {
-      console.error('Error saving one-time codes:', error);
-      alert('Error saving one-time codes');
-    });
+    .catch(() => alert('Error saving one-time codes.'));
   }
 
-  document.getElementById('dutyCycleOpen').addEventListener('input', function(e) {
+  document.getElementById('dutyCycleOpen').addEventListener('input', e => {
     document.getElementById('dutyCycleOpenValue').value = e.target.value;
   });
-
-  document.getElementById('dutyCycleClose').addEventListener('input', function(e) {
+  document.getElementById('dutyCycleClose').addEventListener('input', e => {
     document.getElementById('dutyCycleCloseValue').value = e.target.value;
   });
-
-  document.getElementById('motorKickMs').addEventListener('input', function(e) {
+  document.getElementById('motorKickMs').addEventListener('input', e => {
     document.getElementById('motorKickMsValue').value = e.target.value;
   });
 
-  const MOTOR_MODE_TEXT = {
-    '0': 'Original behaviour: full power for the first 100 ms. The stroke usually ends inside this boost, so the speed sliders have little effect and the arm can overshoot.',
-    '1': 'Short start kick, then continuous PWM that brakes instead of coasting between pulses. Gives a linear, quiet low speed. Start here.',
-    '2': 'Short start kick, then the motor moves in small steps (15 ms pulse, braked pause). The speed slider sets the pause length. Auto calibration is not available in this mode.'
-  };
-
-  function updateMotorModeUi() {
-    const mode = document.getElementById('motorMode').value;
-    document.getElementById('motorModeExplainer').textContent = MOTOR_MODE_TEXT[mode] || '';
-    document.getElementById('motorKickGroup').style.display = (mode === '0') ? 'none' : 'block';
-    const calibrateBtn = document.getElementById('calibrateBtn');
-    if (calibrateBtn) calibrateBtn.title = (mode === '2') ? 'Not available in step mode' : '';
-  }
-
-  document.getElementById('motorMode').addEventListener('change', updateMotorModeUi);
-  updateMotorModeUi();
+  document.getElementById('devMode').addEventListener('change', function(e) {
+    const enabled = e.target.checked;
+    setTelemetryVisibility(enabled);
+    fetch('/dev-mode', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'enabled=' + (enabled ? '1' : '0')
+    });
+  });
 
   function updateCallbackTlsVisibility() {
     const url = document.getElementById('callbackUrl').value;
-    const tlsSection = document.getElementById('callbackTlsSection');
-    if (url.toLowerCase().startsWith('https://')) {
-      tlsSection.style.display = 'block';
-      const skipCert = document.getElementById('callbackSkipCertVal').checked;
-      document.getElementById('callbackCaGroup').style.display = skipCert ? 'none' : 'block';
-    } else {
-      tlsSection.style.display = 'none';
+    const isHttps = url.toLowerCase().startsWith('https://');
+    document.getElementById('callbackTlsSection').style.display = isHttps ? 'block' : 'none';
+    if (isHttps) {
+      document.getElementById('callbackCaGroup').style.display =
+        document.getElementById('callbackSkipCertVal').checked ? 'none' : 'block';
     }
   }
 
   function updateMqttTlsVisibility() {
     const useTls = document.getElementById('mqttUseTls').checked;
-    const tlsFields = document.getElementById('mqttTlsFields');
+    document.getElementById('mqttTlsFields').style.display = useTls ? 'block' : 'none';
     if (useTls) {
-      tlsFields.style.display = 'block';
-      const skipCert = document.getElementById('mqttSkipCertVal').checked;
-      document.getElementById('mqttCaGroup').style.display = skipCert ? 'none' : 'block';
-    } else {
-      tlsFields.style.display = 'none';
+      document.getElementById('mqttCaGroup').style.display =
+        document.getElementById('mqttSkipCertVal').checked ? 'none' : 'block';
     }
   }
 
   document.getElementById('callbackUrl').addEventListener('input', updateCallbackTlsVisibility);
   document.getElementById('callbackSkipCertVal').addEventListener('change', updateCallbackTlsVisibility);
-
   document.getElementById('mqttUseTls').addEventListener('change', function(e) {
     const portInput = document.getElementById('mqttPort');
-    if (e.target.checked) {
-      if (portInput.value === '1883') {
-        portInput.value = '8883';
-      }
-    } else {
-      if (portInput.value === '8883') {
-        portInput.value = '1883';
-      }
-    }
+    if (e.target.checked && portInput.value === '1883') portInput.value = '8883';
+    else if (!e.target.checked && portInput.value === '8883') portInput.value = '1883';
     updateMqttTlsVisibility();
   });
   document.getElementById('mqttSkipCertVal').addEventListener('change', updateMqttTlsVisibility);
@@ -1184,31 +2049,23 @@
   loadConfig();
 
   function factoryReset() {
-    if (confirm("Das Gerät auf Werkseinstellung zurücksetzen?")) {
-      fetch('/factoryreset', {
-        method: 'POST'
-      })
-      .then(response => {
-        if (response.ok) {
-          document.querySelector('.container').innerHTML = `
-            <div class="box">
-              <h2>Factory Reset Successful</h2>
-              <p>The device has been reset to factory settings.</p>
-              <p>The device is now restarting. You will be redirected to the main page in a few seconds.</p>
-              <p>If this reset changed the WiFi settings, this redirect might not work.</p>
-            </div>
-          `;
-          setTimeout(() => {
-            window.location.href = '/';
-          }, 5000);
-        } else {
-          alert('Error performing factory reset.');
-        }
-      })
-      .catch(error => {
-        console.error('Error performing factory reset:', error);
-        alert('Error performing factory reset.');
-      });
+    if (confirm('Reset device to factory defaults? All WiFi, MQTT and access codes will be erased.')) {
+      fetch('/factoryreset', { method: 'POST' })
+        .then(r => {
+          if (r.ok) {
+            document.getElementById('saveDock').classList.remove('visible');
+            document.querySelector('.app').innerHTML = `
+              <div class="card" style="max-width:480px; margin: 40px auto; text-align:center;">
+                <h2 style="margin-top:0;">Factory Reset Complete</h2>
+                <p class="helper">The device is restarting into setup mode (Paketkasten-Setup).</p>
+              </div>
+            `;
+            setTimeout(() => { window.location.href = '/'; }, 5000);
+          } else {
+            alert('Error performing factory reset.');
+          }
+        })
+        .catch(() => alert('Error performing factory reset.'));
     }
   }
 
@@ -1221,27 +2078,19 @@
   function renderWifiList(networks) {
     const wifiList = document.getElementById('wifiList');
     wifiList.innerHTML = '';
-    
     if (!networks || networks.length === 0) {
-      wifiList.innerHTML = '<div style="text-align: center; color: var(--off-color); padding: 10px;">No networks found</div>';
+      wifiList.innerHTML = '<div class="muted" style="text-align:center; padding:10px;">No networks found</div>';
       return;
     }
-
-    // Sort by RSSI strength descending
     networks.sort((a, b) => b.rssi - a.rssi);
-
     networks.forEach(net => {
-      if (!net.ssid) return; // Skip hidden or empty SSIDs
+      if (!net.ssid) return;
       const item = document.createElement('div');
-      item.className = 'wifi-network-item';
+      item.className = 'wifi-item';
       item.onclick = () => selectWifi(net.ssid);
-      
-      const pct = rssiToPercentage(net.rssi);
-      const secureIcon = net.secure ? '🔒' : '🔓';
-      
       item.innerHTML = `
         <span>${escapeHtml(net.ssid)}</span>
-        <span class="wifi-info">${secureIcon} 📶 ${pct}%</span>
+        <span class="wifi-meta">${net.secure ? 'WPA' : 'Open'} &middot; ${rssiToPercentage(net.rssi)}%</span>
       `;
       wifiList.appendChild(item);
     });
@@ -1249,69 +2098,48 @@
 
   function scanWifi() {
     const scanBtn = document.getElementById('wifiScanBtn');
-    const scanIcon = document.getElementById('wifiScanIcon');
     const scanText = document.getElementById('wifiScanText');
     const wifiScanResult = document.getElementById('wifiScanResult');
     const wifiList = document.getElementById('wifiList');
-    
     scanBtn.disabled = true;
-    scanIcon.textContent = '⏳';
     scanText.textContent = 'Scanning...';
     wifiScanResult.style.display = 'block';
-    wifiList.innerHTML = '<div style="text-align: center; color: var(--off-color); padding: 10px;">Scanning for networks...</div>';
-    
+    wifiList.innerHTML = '<div class="muted" style="text-align:center; padding:10px;">Scanning for networks...</div>';
     wifiListRendered = false;
 
     fetch('/scan')
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Failed to start scan');
-        }
-        return response.json();
-      })
-      .then(data => {
-        console.log('WiFi scan initiated:', data);
-      })
-      .catch(error => {
-        console.error('Error starting WiFi scan:', error);
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      .catch(() => {
         scanBtn.disabled = false;
-        scanIcon.textContent = '🔍';
         scanText.textContent = 'Scan';
-        wifiList.innerHTML = '<div style="text-align: center; color: var(--danger-color); padding: 10px;">Failed to start scan. Try again.</div>';
+        wifiList.innerHTML = '<div style="text-align:center; color:var(--danger); padding:10px;">Scan failed. Try again.</div>';
       });
   }
 
   function selectWifi(ssid) {
     document.getElementById('ssid').value = ssid;
+    markDirty();
     document.getElementById('password').focus();
     document.getElementById('wifiScanResult').style.display = 'none';
   }
 
   function exportSettings() {
     fetch('/config')
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Failed to fetch settings');
-        }
-        return response.json();
-      })
+      .then(r => { if (!r.ok) throw new Error('Failed to fetch settings'); return r.json(); })
       .then(data => {
-        // Double check and remove any passwords if they somehow exist
         delete data.password;
         delete data.mqttPassword;
-        
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
-        const downloadAnchor = document.createElement('a');
-        downloadAnchor.setAttribute("href", dataStr);
-        downloadAnchor.setAttribute("download", "paketkasten-settings.json");
-        document.body.appendChild(downloadAnchor);
-        downloadAnchor.click();
-        downloadAnchor.remove();
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'paketkasten-settings.json';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
       })
-      .catch(error => {
-        console.error('Error exporting settings:', error);
-        alert('Error exporting settings: ' + error.message);
-      });
+      .catch(err => alert('Error exporting settings: ' + err.message));
   }
 
   function triggerImportSettings() {
@@ -1321,33 +2149,25 @@
   function importSettings(event) {
     const file = event.target.files[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = function(e) {
+      const statusDiv = document.getElementById('importStatus');
       try {
         const data = JSON.parse(e.target.result);
-        
-        if (!data || typeof data !== 'object') {
-          throw new Error('Invalid JSON format');
-        }
+        if (!data || typeof data !== 'object') throw new Error('Invalid JSON format');
 
-        // SSID
         if (data.ssid !== undefined) document.getElementById('ssid').value = data.ssid;
-        
-        // MQTT
         if (data.mqttServer !== undefined) document.getElementById('mqttServer').value = data.mqttServer;
         if (data.mqttPort !== undefined) document.getElementById('mqttPort').value = data.mqttPort;
         if (data.mqttUser !== undefined) document.getElementById('mqttUser').value = data.mqttUser;
-        if (data.mqttUseTls !== undefined) document.getElementById('mqttUseTls').checked = data.mqttUseTls;
-        if (data.mqttSkipCertVal !== undefined) document.getElementById('mqttSkipCertVal').checked = data.mqttSkipCertVal;
+        if (data.mqttUseTls !== undefined) document.getElementById('mqttUseTls').checked = !!data.mqttUseTls;
+        if (data.mqttSkipCertVal !== undefined) document.getElementById('mqttSkipCertVal').checked = !!data.mqttSkipCertVal;
         if (data.mqttCa !== undefined) document.getElementById('mqttCa').value = data.mqttCa;
 
-        // Callback
         if (data.callbackUrl !== undefined) document.getElementById('callbackUrl').value = data.callbackUrl;
-        if (data.callbackSkipCertVal !== undefined) document.getElementById('callbackSkipCertVal').checked = data.callbackSkipCertVal;
+        if (data.callbackSkipCertVal !== undefined) document.getElementById('callbackSkipCertVal').checked = !!data.callbackSkipCertVal;
         if (data.callbackCa !== undefined) document.getElementById('callbackCa').value = data.callbackCa;
 
-        // Duty cycles
         if (data.dutyCycleOpen !== undefined) {
           document.getElementById('dutyCycleOpen').value = data.dutyCycleOpen;
           document.getElementById('dutyCycleOpenValue').value = data.dutyCycleOpen;
@@ -1356,75 +2176,43 @@
           document.getElementById('dutyCycleClose').value = data.dutyCycleClose;
           document.getElementById('dutyCycleCloseValue').value = data.dutyCycleClose;
         }
-        if (data.motorMode !== undefined) {
-          document.getElementById('motorMode').value = String(data.motorMode);
-          updateMotorModeUi();
-        }
         if (data.motorKickMs !== undefined) {
           document.getElementById('motorKickMs').value = data.motorKickMs;
           document.getElementById('motorKickMsValue').value = data.motorKickMs;
         }
-
-        // Melody
         if (data.selectedMelody !== undefined) document.getElementById('melodySelect').value = data.selectedMelody;
+        if (data.autolock !== undefined) document.getElementById('autolock').checked = !!data.autolock;
+        if (data.oneTimeOpening !== undefined) document.getElementById('oneTimeOpening').checked = !!data.oneTimeOpening;
+        if (data.devMode !== undefined) {
+          document.getElementById('devMode').checked = !!data.devMode;
+          setTelemetryVisibility(!!data.devMode);
+        }
 
-        // Settings checkboxes
-        if (data.autolock !== undefined) document.getElementById('autolock').checked = data.autolock;
-        if (data.oneTimeOpening !== undefined) document.getElementById('oneTimeOpening').checked = data.oneTimeOpening;
-
-        // Update UI visibilities
         updateCallbackTlsVisibility();
         updateMqttTlsVisibility();
 
-        // Clear existing Wiegand codes and load imported ones
-        document.getElementById('ownerCodes').innerHTML = '<label>Owner Codes:</label>';
+        document.getElementById('ownerCodes').innerHTML = '';
         if (data.ownerCodes) {
-          try {
-            const ownerCodes = JSON.parse(data.ownerCodes);
-            ownerCodes.forEach(code => createCodeEntry('owner', code.label, code.code));
-          } catch(e) {
-            console.error('Error parsing owner codes from import:', e);
-          }
+          JSON.parse(data.ownerCodes).forEach(c => createCodeEntry('owner', c.label, c.code));
         }
 
-        document.getElementById('deliveryCodes').innerHTML = '<label>Delivery Codes:</label>';
+        document.getElementById('deliveryCodes').innerHTML = '';
         if (data.deliveryCodes) {
-          try {
-            const deliveryCodes = JSON.parse(data.deliveryCodes);
-            deliveryCodes.forEach(code => createCodeEntry('delivery', code.label, code.code));
-          } catch(e) {
-            console.error('Error parsing delivery codes from import:', e);
-          }
+          JSON.parse(data.deliveryCodes).forEach(c => createCodeEntry('delivery', c.label, c.code));
         }
 
-        // One-time codes import (if present)
         if (data.oneTimeCodes) {
-          try {
-            const otcList = JSON.parse(data.oneTimeCodes);
-            currentOneTimeCodes = otcList;
-            saveOneTimeCodes(currentOneTimeCodes);
-          } catch(e) {
-            console.error('Error parsing one-time codes from import:', e);
-          }
+          pendingImportedOtc = true;
+          renderOneTimeCodes(JSON.parse(data.oneTimeCodes));
         }
 
-        // Show status message
-        const statusDiv = document.getElementById('importStatus');
-        statusDiv.style.display = 'block';
-        statusDiv.style.borderColor = 'var(--success-color)';
-        statusDiv.style.color = 'var(--success-color)';
-        statusDiv.textContent = 'Settings imported successfully! Please enter your WiFi/MQTT passwords if needed, then click "Save Configuration & Reboot" below.';
-        
-        // Reset file input value
+        markDirty();
+        statusDiv.className = 'feedback ok';
+        statusDiv.textContent = 'Backup loaded! Re-enter WiFi/MQTT passwords if needed, then click "Save & Reboot".';
         event.target.value = '';
-
       } catch (err) {
-        console.error('Failed to parse settings file:', err);
-        const statusDiv = document.getElementById('importStatus');
-        statusDiv.style.display = 'block';
-        statusDiv.style.borderColor = 'var(--danger-color)';
-        statusDiv.style.color = 'var(--danger-color)';
-        statusDiv.textContent = 'Error parsing settings file: ' + err.message;
+        statusDiv.className = 'feedback err';
+        statusDiv.textContent = 'Import failed: ' + err.message;
       }
     };
     reader.readAsText(file);

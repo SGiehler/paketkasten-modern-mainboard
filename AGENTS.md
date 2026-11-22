@@ -17,7 +17,8 @@ Welcome! If you are a new AI coding agent assigned to work on the Paketkasten Re
 * **State Management**: [state.h](include/state.h) / [state.cpp](src/state.cpp) - Houses state variables. *Note: Inter-task and ISR-shared variables are marked `volatile`.*
 * **Limit Switch Control**: [SwitchManager.h](include/SwitchManager.h) / [SwitchManager.cpp](src/SwitchManager.cpp) - Configures switch pull-ups, manages IRAM-based interrupts, and performs high-speed digital debounce filtering.
 * **Motor Control**: [MotorController.h](include/MotorController.h) / [MotorController.cpp](src/MotorController.cpp) - Applies the drive profile to the H-bridge pins (forward/reverse/braking), handles timeouts and logs every movement duration.
-* **Motor Drive Profiles**: [MotorDriveProfile.h](include/MotorDriveProfile.h) - Pure, Arduino-free timing for the drive modes (Original / Slow-smooth / Slow-steps), stall escalation and timeouts. Unit-tested in [test/test_motor_profile](test/test_motor_profile/test_main.cpp).
+* **Motor Drive Profile**: [MotorDriveProfile.h](include/MotorDriveProfile.h) - Pure, Arduino-free timing for the Slow-Decay PWM drive profile (breakaway start kick, gear-safe stall escalation, active brake -> DRV8871 sleep, and timeouts). Unit-tested in [test/test_motor_profile](test/test_motor_profile/test_main.cpp).
+* **Live Telemetry**: [TelemetryLog.h](include/TelemetryLog.h) / [TelemetryLog.cpp](src/TelemetryLog.cpp) - Thread-safe 48-entry static ring buffer mirroring to Serial and served via `GET /logs` when Dev Telemetry mode is enabled in the WebUI.
 * **Core Application Task & Cooldowns**: [main.cpp](src/main.cpp) - App task pinned to Core 1 running switch manager updates, motor controller ticks, autolock timing cooldowns, and Wiegand re-attachment delays to filter inductive motor spikes.
 
 ## ⚠️ Essential Development Commandments

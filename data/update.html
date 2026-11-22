@@ -1,287 +1,359 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Firmware Update</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paketkasten — Firmware Update</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+  (function() {
+    var saved = localStorage.getItem('pk_theme');
+    if (saved === 'dark' || saved === 'light') {
+      document.documentElement.setAttribute('data-theme', saved);
+    }
+  })();
+</script>
 <style>
   :root {
-    --primary-color: #007bff;
-    --primary-color-hover: #0056b3;
-    --danger-color: #dc3545;
-    --danger-color-hover: #c82333;
-    --light-bg: #f8f9fa;
-    --dark-bg: #212529;
-    --light-color: #212529;
-    --dark-color: #f8f9fa;
-    --light-border: #dee2e6;
-    --dark-border: #495057;
-    --light-input-bg: #fff;
-    --dark-input-bg: #343a40;
-    --success-color: #28a745;
-    --off-color: #6c757d;
+    --bg: #f1f5f9;
+    --surface: #ffffff;
+    --surface-2: #f8fafc;
+    --border: #e2e8f0;
+    --border-strong: #cbd5e1;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --primary-soft: rgba(37, 99, 235, 0.10);
+    --success: #10b981;
+    --danger: #ef4444;
+    --shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 4px 14px rgba(15, 23, 42, 0.04);
+    --radius: 14px;
+    --radius-sm: 9px;
   }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0b1120;
+      --surface: #111827;
+      --surface-2: #1e293b;
+      --border: #1f2937;
+      --border-strong: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --primary-soft: rgba(59, 130, 246, 0.16);
+      --success: #34d399;
+      --danger: #f87171;
+      --shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #0b1120;
+    --surface: #111827;
+    --surface-2: #1e293b;
+    --border: #1f2937;
+    --border-strong: #334155;
+    --text: #f8fafc;
+    --text-muted: #94a3b8;
+    --primary: #3b82f6;
+    --primary-hover: #2563eb;
+    --primary-soft: rgba(59, 130, 246, 0.16);
+    --success: #34d399;
+    --danger: #f87171;
+    --shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
 
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    background-color: var(--light-bg);
-    color: var(--light-color);
     margin: 0;
-    padding: 20px;
+    padding: 20px 14px 40px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.45;
+  }
+
+  .app {
+    max-width: 820px;
+    margin: 0 auto;
+  }
+
+  .topbar {
     display: flex;
-    justify-content: center;
     align-items: center;
-    min-height: 100vh;
-    box-sizing: border-box;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 18px;
   }
 
-  .container {
-    width: 100%;
-    max-width: 600px;
+  .topbar h1 {
+    font-size: 1.35rem;
+    font-weight: 700;
+    margin: 0;
   }
 
-  h1, h2 {
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  @media (min-width: 720px) {
+    body { padding: 32px 24px; }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+  }
+
+  .card h2 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 0 0 6px;
+  }
+
+  .helper {
+    font-size: 0.84rem;
+    color: var(--text-muted);
+    margin: 0 0 14px;
+  }
+
+  input[type="file"] { display: none; }
+
+  .drop-zone {
+    border: 2px dashed var(--border-strong);
+    border-radius: 12px;
+    background: var(--surface-2);
+    padding: 26px 16px;
     text-align: center;
-    margin-bottom: 20px;
-  }
-  
-  h1 {
-    font-size: 2.5rem;
-  }
-  
-  h2 {
-    font-size: 1.75rem;
-    border-bottom: 1px solid var(--light-border);
-    padding-bottom: 10px;
-    margin-top: 20px;
+    cursor: pointer;
+    margin-bottom: 14px;
+    transition: border-color 0.15s, background 0.15s;
   }
 
-  .box {
-    background-color: var(--light-input-bg);
-    padding: 20px 30px 30px 30px;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
+  .drop-zone:hover,
+  .drop-zone--over {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+    border-style: solid;
+  }
+
+  .drop-zone__icon {
+    color: var(--primary);
+    margin-bottom: 8px;
+  }
+
+  .drop-zone__prompt {
+    display: block;
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    word-break: break-all;
+  }
+
+  .drop-zone.has-file .drop-zone__prompt {
+    color: var(--text);
+    font-weight: 600;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   }
 
   .btn {
-    display: inline-block;
-    font-weight: 400;
-    text-align: center;
-    vertical-align: middle;
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 10px 16px;
+    min-height: 42px;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    font-weight: 600;
     cursor: pointer;
     border: 1px solid transparent;
-    padding: 12px 20px;
-    font-size: 1rem;
-    border-radius: 4px;
     text-decoration: none;
-    width: 100%;
-    box-sizing: border-box;
-    margin-top: 10px;
+    transition: background 0.15s, border-color 0.15s;
   }
 
-  .btn-primary {
-    color: #fff;
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
-  }
-
-  .btn-primary:hover {
-    background-color: var(--primary-color-hover);
-    border-color: var(--primary-color-hover);
-  }
+  .btn-block { width: 100%; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-hover); }
+  .btn-secondary { background: var(--surface); color: var(--text); border-color: var(--border-strong); }
+  .btn-secondary:hover { background: var(--surface-2); }
 
   .progress {
     width: 100%;
-    background-color: #e9ecef;
-    border-radius: 4px;
-    margin-top: 20px;
+    height: 10px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    margin-top: 14px;
     overflow: hidden;
   }
 
   .bar {
     width: 0%;
-    height: 20px;
-    background-color: var(--primary-color);
-    text-align: center;
-    line-height: 20px;
-    color: white;
-    transition: width .3s ease;
+    height: 100%;
+    background: var(--primary);
+    border-radius: 999px;
+    transition: width 0.25s ease;
   }
 
-  .status {
-    margin-top: 15px;
-    text-align: center;
+  .progress-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 6px;
+    min-height: 1.2em;
   }
 
-  input[type="file"] {
-    display: none;
-  }
-
-  .drop-zone {
-    border: 2px dashed var(--light-border);
-    border-radius: 5px;
-    padding: 20px;
-    text-align: center;
-    cursor: pointer;
-    margin-bottom: 20px;
-  }
-
-  .drop-zone--over {
-    border-style: solid;
-  }
-
-  .drop-zone__prompt {
-    color: #aaa;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    body {
-      background-color: var(--dark-bg);
-      color: var(--dark-color);
-    }
-    .box {
-      background-color: var(--dark-input-bg);
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-    }
-    h2 {
-      border-bottom-color: var(--dark-border);
-    }
-    .progress {
-        background-color: var(--dark-border);
-    }
-  }
+  .status { font-weight: 600; }
 </style>
 </head>
 <body>
-<div class="container">
-  <h1>Firmware Update</h1>
-  <div class="box">
-    <h2>Upload Firmware</h2>
-    <form id="upload_form_fw" action="/update?type=firmware" enctype="multipart/form-data" method="post">
+<div class="app">
+  <header class="topbar">
+    <h1>Firmware &amp; Filesystem Update</h1>
+    <a href="/" class="btn btn-secondary">&larr; Back</a>
+  </header>
+
+  <div class="grid-2">
+    <div class="card">
+      <h2>Firmware (.bin)</h2>
+      <p class="helper">Upload <code>firmware.bin</code> to update the ESP32 application.</p>
+      <form id="upload_form_fw" action="/update?type=firmware" enctype="multipart/form-data" method="post">
         <div class="drop-zone" id="drop_zone_fw">
-            <span class="drop-zone__prompt">Drag & drop firmware file here or click to select</span>
-            <input type="file" name="update" id="update_fw" accept=".bin">
+          <div class="drop-zone__icon">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+          </div>
+          <span class="drop-zone__prompt">Drop firmware.bin here or click to select</span>
+          <input type="file" name="update" id="update_fw" accept=".bin">
         </div>
-        <input type="submit" value="Update Firmware" class="btn btn-primary">
-    </form>
-    <div class="progress">
-        <div class="bar" id="bar_fw">0%</div>
+        <button type="submit" class="btn btn-primary btn-block">Upload Firmware</button>
+      </form>
+      <div class="progress"><div class="bar" id="bar_fw"></div></div>
+      <div class="progress-meta">
+        <span class="status" id="status_fw"></span>
+        <span id="pct_fw">0%</span>
+      </div>
     </div>
-    <div class="status" id="status_fw"></div>
 
-    <h2 style="margin-top: 40px;">Upload Filesystem</h2>
-    <form id="upload_form_fs" action="/update?type=filesystem" enctype="multipart/form-data" method="post">
+    <div class="card">
+      <h2>Filesystem (LittleFS)</h2>
+      <p class="helper">Upload <code>littlefs.bin</code> to update the WebUI files.</p>
+      <form id="upload_form_fs" action="/update?type=filesystem" enctype="multipart/form-data" method="post">
         <div class="drop-zone" id="drop_zone_fs">
-            <span class="drop-zone__prompt">Drag & drop filesystem file here or click to select</span>
-            <input type="file" name="update" id="update_fs" accept=".bin">
+          <div class="drop-zone__icon">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
+          </div>
+          <span class="drop-zone__prompt">Drop littlefs.bin here or click to select</span>
+          <input type="file" name="update" id="update_fs" accept=".bin">
         </div>
-        <input type="submit" value="Update Filesystem" class="btn btn-primary">
-    </form>
-    <div class="progress">
-        <div class="bar" id="bar_fs">0%</div>
+        <button type="submit" class="btn btn-primary btn-block">Upload Filesystem</button>
+      </form>
+      <div class="progress"><div class="bar" id="bar_fs"></div></div>
+      <div class="progress-meta">
+        <span class="status" id="status_fs"></span>
+        <span id="pct_fs">0%</span>
+      </div>
     </div>
-    <div class="status" id="status_fs"></div>
-
-    <a href="/" class="btn" style="background-color: #6c757d; color: white; margin-top: 15px;">Go Back</a>
   </div>
 </div>
 
 <script>
-    function setupUploadForm(formId, barId, statusId) {
-        document.getElementById(formId).addEventListener('submit', function(e) {
-            e.preventDefault();
-            var form = e.target;
-            var data = new FormData(form);
-            var fileInput = form.querySelector('input[type="file"]');
-            var file = fileInput.files[0];
-            if (!file) {
-                document.getElementById(statusId).innerHTML = "Please select a file.";
-                return;
-            }
+  function setupUploadForm(formId, barId, pctId, statusId) {
+    document.getElementById(formId).addEventListener('submit', function(e) {
+      e.preventDefault();
+      var form = e.target;
+      var fileInput = form.querySelector('input[type="file"]');
+      var file = fileInput.files[0];
+      var statusEl = document.getElementById(statusId);
+      var bar = document.getElementById(barId);
+      var pctEl = document.getElementById(pctId);
 
-            var xhr = new XMLHttpRequest();
-            xhr.open('POST', form.action, true);
+      if (!file) {
+        statusEl.textContent = 'Please select a .bin file first.';
+        statusEl.style.color = 'var(--danger)';
+        return;
+      }
 
-            xhr.upload.addEventListener('progress', function(e) {
-                if (e.lengthComputable) {
-                    var percentComplete = (e.loaded / e.total) * 100;
-                    var bar = document.getElementById(barId);
-                    bar.style.width = percentComplete + '%';
-                    bar.innerHTML = Math.round(percentComplete) + '%';
-                }
-            });
+      statusEl.textContent = 'Uploading...';
+      statusEl.style.color = 'var(--text-muted)';
+      bar.style.width = '0%';
+      pctEl.textContent = '0%';
 
-            xhr.onload = function() {
-                var statusEl = document.getElementById(statusId);
-                if (xhr.status === 200) {
-                    statusEl.innerHTML = "Update successful! Rebooting...";
-                    statusEl.style.color = "var(--success-color)";
-                    setTimeout(function(){ window.location.href = '/'; }, 5000);
-                } else {
-                    statusEl.innerHTML = "Update failed: " + xhr.responseText;
-                    statusEl.style.color = "var(--danger-color)";
-                }
-            }; 
-            
-            xhr.onerror = function() {
-                var statusEl = document.getElementById(statusId);
-                statusEl.innerHTML = "Update failed: Connection error.";
-                statusEl.style.color = "var(--danger-color)";
-            };
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', form.action, true);
 
-            xhr.send(data);
-        });
-    }
-
-    function setupDragAndDrop(dropZoneId, fileInputId) {
-        const dropZone = document.getElementById(dropZoneId);
-        const fileInput = document.getElementById(fileInputId);
-        const promptElement = dropZone.querySelector(".drop-zone__prompt");
-
-        dropZone.addEventListener("click", e => {
-            fileInput.click();
-        });
-
-        fileInput.addEventListener("change", e => {
-            if (fileInput.files.length) {
-                updatePrompt(dropZone, fileInput.files[0]);
-            }
-        });
-
-        dropZone.addEventListener("dragover", e => {
-            e.preventDefault();
-            dropZone.classList.add("drop-zone--over");
-        });
-
-        ["dragleave", "dragend"].forEach(type => {
-            dropZone.addEventListener(type, e => {
-                dropZone.classList.remove("drop-zone--over");
-            });
-        });
-
-        dropZone.addEventListener("drop", e => {
-            e.preventDefault();
-
-            if (e.dataTransfer.files.length) {
-                fileInput.files = e.dataTransfer.files;
-                updatePrompt(dropZone, e.dataTransfer.files[0]);
-            }
-
-            dropZone.classList.remove("drop-zone--over");
-        });
-
-        function updatePrompt(dropZone, file) {
-            const promptElement = dropZone.querySelector(".drop-zone__prompt");
-            promptElement.textContent = file.name;
+      xhr.upload.addEventListener('progress', function(ev) {
+        if (ev.lengthComputable) {
+          var pct = Math.round((ev.loaded / ev.total) * 100);
+          bar.style.width = pct + '%';
+          pctEl.textContent = pct + '%';
         }
+      });
+
+      xhr.onload = function() {
+        if (xhr.status === 200 && xhr.responseText.trim() === 'OK') {
+          statusEl.textContent = 'Update successful! Rebooting...';
+          statusEl.style.color = 'var(--success)';
+          setTimeout(function() { window.location.href = '/'; }, 5000);
+        } else {
+          statusEl.textContent = 'Update failed: ' + (xhr.responseText || ('HTTP ' + xhr.status));
+          statusEl.style.color = 'var(--danger)';
+        }
+      };
+
+      xhr.onerror = function() {
+        statusEl.textContent = 'Update failed: Connection error.';
+        statusEl.style.color = 'var(--danger)';
+      };
+
+      xhr.send(new FormData(form));
+    });
+  }
+
+  function setupDragAndDrop(dropZoneId, fileInputId) {
+    const dropZone = document.getElementById(dropZoneId);
+    const fileInput = document.getElementById(fileInputId);
+
+    function showFile(file) {
+      dropZone.classList.add('has-file');
+      dropZone.querySelector('.drop-zone__prompt').textContent = file.name;
     }
 
-    setupUploadForm('upload_form_fw', 'bar_fw', 'status_fw');
-    setupUploadForm('upload_form_fs', 'bar_fs', 'status_fs');
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length) showFile(fileInput.files[0]);
+    });
+    dropZone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropZone.classList.add('drop-zone--over');
+    });
+    ['dragleave', 'dragend'].forEach(evt => {
+      dropZone.addEventListener(evt, () => dropZone.classList.remove('drop-zone--over'));
+    });
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('drop-zone--over');
+      if (e.dataTransfer.files.length) {
+        fileInput.files = e.dataTransfer.files;
+        showFile(e.dataTransfer.files[0]);
+      }
+    });
+  }
 
-    setupDragAndDrop('drop_zone_fw', 'update_fw');
-    setupDragAndDrop('drop_zone_fs', 'update_fs');
+  setupUploadForm('upload_form_fw', 'bar_fw', 'pct_fw', 'status_fw');
+  setupUploadForm('upload_form_fs', 'bar_fs', 'pct_fs', 'status_fs');
+  setupDragAndDrop('drop_zone_fw', 'update_fw');
+  setupDragAndDrop('drop_zone_fs', 'update_fs');
 </script>
 </body>
 </html>

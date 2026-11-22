@@ -1,6 +1,4 @@
 #include "state.h"
-#include "ConfigManager.h"
-#include "MotorDriveProfile.h"
 
 // Pin definitions
 const int MOTOR_PIN_1 = 33;
@@ -21,15 +19,20 @@ const char* SOFTAP_PASSWORD = "G67zC4OiB";
 // Global variables
 volatile MailboxState currentState = LOCKED;
 volatile bool deliveryBlocked = false;
+volatile bool closedAlreadyReachedInCycle = false;
+volatile bool otaInProgress = false;
 char lastScannedWiegandId[20] = "";
 char lastKeypadCode[20] = "";
 char lastUsed[50] = "unknown";
 volatile unsigned long openStateEnterTime = 0;
-unsigned long preOpeningStateEnterTime = 0;
+volatile unsigned long preOpeningStateEnterTime = 0;
 volatile unsigned long motorStartTime = 0;
 volatile unsigned long lockedStateEnterTime = 0;
-volatile bool wiegandAttached = true;
 volatile bool shouldRestart = false;
+volatile unsigned long restartRequestedAt = 0;
+volatile unsigned long restartDelayMs = 1000;
+
+portMUX_TYPE stateMux = portMUX_INITIALIZER_UNLOCKED;
 
 TaskHandle_t appTaskHandle = nullptr;
 
@@ -38,16 +41,9 @@ volatile MailboxState lastStrokeFrom = LOCKED;
 volatile MailboxState lastStrokeTo = LOCKED;
 volatile bool lastStrokeEscalated = false;
 
-// Calibration variables
-volatile bool calibrationActive = false;
-volatile int calibrationStep = 0;
-volatile int calibrationCandidateDuty = 20;
-volatile unsigned long calibrationStepTime = 0;
-int calibratedOpen = 0;
-int calibratedClose = 0;
-
 std::vector<String> mqttMessageQueue;
 SemaphoreHandle_t mqttQueueMutex = nullptr;
+QueueHandle_t httpCallbackQueue = nullptr;
 
 const char* mailboxStateName(MailboxState state) {
   switch (state) {
@@ -68,21 +64,10 @@ String getMailboxStateString() {
   return mailboxStateName(currentState);
 }
 
-bool startCalibration() {
-    if (!MotorProfile::calibrationSupported(configManager.getConfig().motorMode)) {
-        Serial.println("[Calibration] Not available in inching mode (slider sets the pause, not a duty).");
-        return false;
-    }
-    calibrationActive = true;
-    calibrationStep = 1; // start with prep closing
-    calibratedOpen = 0;
-    calibratedClose = 0;
-    calibrationCandidateDuty = 20;
-    calibrationStepTime = millis();
-    if (currentState == MOTOR_ERROR) {
-        currentState = LOCKED;
-    }
-    Serial.println("[Calibration] Auto-calibration started!");
-    return true;
+void requestRestart(unsigned long delayMs) {
+  portENTER_CRITICAL(&stateMux);
+  restartRequestedAt = millis();
+  restartDelayMs = delayMs;
+  shouldRestart = true;
+  portEXIT_CRITICAL(&stateMux);
 }
-

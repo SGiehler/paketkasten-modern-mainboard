@@ -1,5 +1,6 @@
 #include "MotorController.h"
 #include "ConfigManager.h"
+#include "TelemetryLog.h"
 #include "state.h"
 
 MotorController motorController(MOTOR_PIN_1, MOTOR_PIN_2);
@@ -11,34 +12,49 @@ static bool isMovingState(MailboxState state) {
 MotorController::MotorController(int pin1, int pin2) :
     _pin1(pin1),
     _pin2(pin2),
+    _lastIn1(-1),
+    _lastIn2(-1),
     _lastMotorState((MailboxState)-1),
+    _brakeStartTime(0),
+    _brakeActive(false),
     _escalated(false)
 {}
 
 void MotorController::begin() {
-    pinMode(_pin1, OUTPUT);
-    pinMode(_pin2, OUTPUT);
-    analogWriteFrequency(PWM_FREQ);
-    analogWrite(_pin1, 0);
-    analogWrite(_pin2, 0);
+    // Configure dedicated High-Speed LEDC channels ONCE (Timer 1, isolated from tone() on Timer 0).
+    ledcSetup(MOTOR_LEDC_CH1, PWM_FREQ, MOTOR_LEDC_RES);
+    ledcSetup(MOTOR_LEDC_CH2, PWM_FREQ, MOTOR_LEDC_RES);
+    ledcAttachPin(_pin1, MOTOR_LEDC_CH1);
+    ledcAttachPin(_pin2, MOTOR_LEDC_CH2);
+
+    _lastIn1 = -1;
+    _lastIn2 = -1;
+    _brakeStartTime = 0;
+    _brakeActive = false;
+    writePins(0, 0);
+}
+
+void MotorController::writePins(int in1, int in2) {
+    if (in1 == _lastIn1 && in2 == _lastIn2) {
+        return;
+    }
+    ledcWrite(MOTOR_LEDC_CH1, in1);
+    ledcWrite(MOTOR_LEDC_CH2, in2);
+    _lastIn1 = in1;
+    _lastIn2 = in2;
 }
 
 void MotorController::brakeNow() {
-    noInterrupts();
-    analogWrite(_pin1, MotorProfile::PWM_MAX);
-    analogWrite(_pin2, MotorProfile::PWM_MAX);
-    interrupts();
+    MotorOutput out = MotorProfile::brake();
+    writePins(out.drive, out.other);
 }
 
 void MotorController::apply(const MotorOutput& out, bool opening) {
-    // Opening drives IN1, locking drives IN2.
     const int in1 = opening ? out.drive : out.other;
     const int in2 = opening ? out.other : out.drive;
-    noInterrupts();
-    analogWrite(_pin1, in1);
-    analogWrite(_pin2, in2);
-    interrupts();
-    // A limit switch ISR may have ended the movement between reading the state and writing the
+    writePins(in1, in2);
+
+    // A limit switch ISR may have ended the movement between reading the state and writing
     // drive values; brake right away instead of driving on until the next tick.
     if (!isMovingState(currentState)) {
         brakeNow();
@@ -46,47 +62,69 @@ void MotorController::apply(const MotorOutput& out, bool opening) {
 }
 
 void MotorController::recordStroke(MailboxState from, MailboxState to) {
-    unsigned long endTime;
+    unsigned long now = millis();
+    unsigned long endTime = now;
     if (to == PARCEL_OPEN || to == MAIL_OPEN) {
         endTime = openStateEnterTime;
     } else if (to == LOCKED) {
         endTime = lockedStateEnterTime;
-    } else {
-        endTime = millis();
     }
-    lastStrokeMs = endTime - motorStartTime;
+    unsigned long duration = (endTime >= motorStartTime) ? (endTime - motorStartTime) : (now - motorStartTime);
+    lastStrokeMs = duration;
     lastStrokeFrom = from;
     lastStrokeTo = to;
     lastStrokeEscalated = _escalated;
 
-    const Config& config = configManager.getConfig();
-    Serial.printf("[Motor] %s -> %s in %lu ms (mode=%d, open=%d, close=%d, kick=%d ms%s)\n",
-                  mailboxStateName(from), mailboxStateName(to), (unsigned long)lastStrokeMs,
-                  config.motorMode, config.dutyCycleOpen, config.dutyCycleClose, config.motorKickMs,
-                  _escalated ? ", stall escalation used" : "");
+    const MotorSettings settings = configManager.getMotorSettings();
+    telemetryLog.logf("MOTOR", "%s -> %s in %lu ms (open=%d close=%d kick=%dms%s)",
+                      mailboxStateName(from), mailboxStateName(to), (unsigned long)lastStrokeMs,
+                      settings.dutyCycleOpen, settings.dutyCycleClose, settings.motorKickMs,
+                      _escalated ? " ESCALATED" : "");
 }
 
 void MotorController::update() {
     MailboxState state = currentState;
 
     if (state != _lastMotorState) {
-        if (isMovingState(_lastMotorState)) {
-            recordStroke(_lastMotorState, state);
+        const MailboxState prevState = _lastMotorState;
+        _lastMotorState = state;
+
+        if (isMovingState(prevState) && !isMovingState(state)) {
+            // Brake IMMEDIATELY before logging so rotor inertia is killed at once.
+            brakeNow();
+            _brakeStartTime = millis();
+            _brakeActive = true;
+            recordStroke(prevState, state);
         }
+
         if (isMovingState(state)) {
             motorStartTime = millis();
             _escalated = false;
+            _brakeActive = false;
         }
-        _lastMotorState = state;
     }
 
-    const Config& config = configManager.getConfig();
-    const int mode = MotorProfile::sanitizeMode(config.motorMode);
+    const MotorSettings settings = configManager.getMotorSettings();
     const unsigned long elapsedTime = millis() - motorStartTime;
 
-    if (isMovingState(state) && elapsedTime > MotorProfile::timeoutMs(mode)) {
-        currentState = MOTOR_ERROR;
-        state = MOTOR_ERROR; // brake below; the stroke is recorded on the next tick
+    if (isMovingState(state) && elapsedTime > MotorProfile::TIMEOUT_MS) {
+        bool transitioned = false;
+        portENTER_CRITICAL(&stateMux);
+        if (currentState == state) {
+            currentState = MOTOR_ERROR;
+            transitioned = true;
+        }
+        state = currentState;
+        portEXIT_CRITICAL(&stateMux);
+
+        if (transitioned || !isMovingState(state)) {
+            brakeNow();
+            _brakeStartTime = millis();
+            _brakeActive = true;
+            recordStroke(_lastMotorState, state);
+            _lastMotorState = state;
+            return;
+        }
     }
 
     switch (state) {
@@ -95,33 +133,36 @@ void MotorController::update() {
         case LOCKING: {
             const bool opening = (state != LOCKING);
             int baseDuty = opening
-                ? MotorProfile::clampInt(config.dutyCycleOpen, MotorProfile::OPEN_DUTY_MIN, MotorProfile::OPEN_DUTY_MAX)
-                : MotorProfile::clampInt(config.dutyCycleClose, MotorProfile::CLOSE_DUTY_MIN, MotorProfile::CLOSE_DUTY_MAX);
+                ? MotorProfile::clampInt(settings.dutyCycleOpen, MotorProfile::OPEN_DUTY_MIN, MotorProfile::OPEN_DUTY_MAX)
+                : MotorProfile::clampInt(settings.dutyCycleClose, MotorProfile::CLOSE_DUTY_MIN, MotorProfile::CLOSE_DUTY_MAX);
 
-            // Calibration test steps probe a fixed candidate duty: no stall escalation there,
-            // otherwise every candidate would "succeed".
-            const bool calibrationProbe = calibrationActive &&
-                ((opening && calibrationStep == 3) || (!opening && calibrationStep == 6));
-            int duty;
-            if (calibrationProbe) {
-                duty = MotorProfile::clampInt(calibrationCandidateDuty, MotorProfile::DUTY_MIN, MotorProfile::DUTY_MAX);
-            } else {
-                duty = MotorProfile::escalatedDuty(mode, baseDuty, elapsedTime);
-                if (duty > MotorProfile::clampInt(baseDuty, MotorProfile::DUTY_MIN, MotorProfile::DUTY_MAX)) {
-                    _escalated = true;
-                }
+            int duty = MotorProfile::escalatedDuty(baseDuty, elapsedTime, opening);
+            if (duty > MotorProfile::clampInt(baseDuty, MotorProfile::DUTY_MIN, MotorProfile::DUTY_MAX)) {
+                _escalated = true;
             }
 
-            apply(MotorProfile::driveOutput(mode, elapsedTime, duty, config.motorKickMs), opening);
+            apply(MotorProfile::driveOutput(elapsedTime, duty, settings.motorKickMs, opening), opening);
             break;
         }
         case LOCKED:
         case PARCEL_OPEN:
         case MAIL_OPEN:
         case MOTOR_ERROR:
-            brakeNow();
+        case PRE_OPENING_TO_PARCEL:
+        case PRE_OPENING_TO_MAIL: {
+            if (_brakeActive) {
+                MotorOutput out = MotorProfile::idleOutput(millis() - _brakeStartTime);
+                writePins(out.drive, out.other);
+                if (out.drive == 0 && out.other == 0) {
+                    _brakeActive = false;
+                }
+            } else {
+                writePins(0, 0);
+            }
             break;
+        }
         default:
+            writePins(0, 0);
             break;
     }
 }
