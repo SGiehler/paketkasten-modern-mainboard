@@ -77,6 +77,7 @@ void ConfigManager::loadUnlocked() {
     _config.mqttSkipCertVal = preferences.getBool(MQTT_SKIP_CERT_VAL_KEY, false);
     _config.callbackSkipCertVal = preferences.getBool(CALLBACK_SKIP_CERT_VAL_KEY, false);
     _config.devMode = preferences.getBool(DEV_MODE_KEY, false);
+    _config.hasMailCompartment = preferences.getBool(HAS_MAIL_KEY, true);
     deliveryBlocked = preferences.getBool(DELIVERY_BLOCKED_KEY, false);
     preferences.end();
 }
@@ -112,6 +113,7 @@ void ConfigManager::saveUnlocked() {
     preferences.putBool(MQTT_SKIP_CERT_VAL_KEY, _config.mqttSkipCertVal);
     preferences.putBool(CALLBACK_SKIP_CERT_VAL_KEY, _config.callbackSkipCertVal);
     preferences.putBool(DEV_MODE_KEY, _config.devMode);
+    preferences.putBool(HAS_MAIL_KEY, _config.hasMailCompartment);
     preferences.putBool(DELIVERY_BLOCKED_KEY, deliveryBlocked);
     preferences.end();
 }
@@ -140,7 +142,8 @@ MotorSettings ConfigManager::getMotorSettings() {
         _config.dutyCycleClose,
         _config.autolock,
         _config.oneTimeOpening,
-        _config.devMode
+        _config.devMode,
+        _config.hasMailCompartment
     };
     unlock();
     return s;

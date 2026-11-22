@@ -47,12 +47,23 @@ Die Status-LEDs (Grün und Rot) zeigen den aktuellen Zustand des Systems an:
 | **Öffnet oder Verriegelt (OPENING_TO_PARCEL / OPENING_TO_MAIL / LOCKING)** | ⚫       | 🔴       |
 | **Motorfehler (MOTOR_ERROR)**                     | 🟢        | 🔴       |
 
-# Motor-Geschwindigkeit (Duty Cycle)
+# Motor-Geschwindigkeit (Duty Cycle) & Modell-Templates
 
 Die Firmware steuert den Motor per **Slow-Decay PWM** (aktiv bremsende PWM-Pausen) mit einem kurzen **Start Kick** und automatischer Blockier-Nachregelung. Dadurch läuft der Motor auch bei niedrigen Geschwindigkeiten gleichmäßig und schießt nicht über die Hall-Sensoren hinaus.
 
+In der WebUI unter **Settings → Mailbox Model Template** können direkt praxiserprobte Vorlagen für alle Varianten des DHL Paketkasten Modern (Wandmontage oder freistehend, mit oder ohne Brieffach) per 1-Klick übernommen werden:
+
+| Template | Paketfach-Volumen (Innenmaß) | Opening Speed | Closing Speed | Start Kick | Brieffach |
+|---|---|---:|---:|---:|---|
+| **Modern L** | ~78 L (ca. 53 × 45 × 31 cm) | `110` | `50` | `20 ms` | Nein (nur Paket) |
+| **Modern L + Mail** | ~78 L (ca. 53 × 45 × 31 cm) | `140` | `55` | `25 ms` | Ja |
+| **Modern XL** | ~166 L (ca. 47 × 70 × 40 cm) | `180` | `55` | `35 ms` | Nein (nur Paket) |
+| **Modern XL + Mail** | ~166 L (ca. 47 × 70 × 40 cm) | `195` | `60` | `40 ms` | Ja |
+
+*(Ist **Mail Compartment (Brieffach)** deaktiviert, blendet das Dashboard die überflüssige „Open Mail“-Schaltfläche aus und Owner-Codes öffnen direkt das Paketfach statt bis zum Brief-Sensor durchzufahren — weniger Verschleiß, aber One-Time-Opening-Sperren werden trotzdem zurückgesetzt.)*
+
 - **Start Kick** (Standard `20 ms`, Bereich `0–100 ms`): kurzer 100%-Impuls, um das Schneckengetriebe aus dem Stillstand loszubrechen (beim federunterstützten Schließen automatisch halbiert). Brummt der Motor, ohne loszulaufen, den Wert erhöhen; ist der Anlauf zu ruckartig, verringern.
-- **Opening Speed (`20–255`) / Closing Speed (`20–180`)**: steuert die Fahrgeschwindigkeit beim Öffnen und Schließen. Größere Kästen mit schwererer Schlossmechanik benötigen beim Öffnen typischerweise höhere Werte (z. B. `160–220`) als kleinere Testkästen (`~110`).
+- **Opening Speed (`20–255`) / Closing Speed (`20–180`)**: steuert die Fahrgeschwindigkeit beim Öffnen und Schließen. Alle Schieberegler können nach Auswahl eines Templates jederzeit individuell feinjustiert werden.
 
 **Einstellen:** Nach jeder Bewegung zeigt die WebUI unter "Last movement" an, wie lange die Fahrt gedauert hat. Zeigt sie den Hinweis *stall boost*, war der Duty Cycle zu niedrig: Die Firmware hat nach `0,8 s` die Kraft schrittweise erhöht (beim Öffnen bis volle `255`, beim Schließen bis `180`), damit der Kasten trotzdem sicher öffnet bzw. verriegelt. In diesem Fall den Duty Cycle erhöhen.
 

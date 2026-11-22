@@ -230,6 +230,7 @@ void MailboxNetworkManager::setupWebServer() {
         doc["oneTimeCodes"] = config.oneTimeCodes;
         doc["oneTimeOpening"] = config.oneTimeOpening;
         doc["devMode"] = config.devMode;
+        doc["hasMailCompartment"] = config.hasMailCompartment;
         doc["mqttUseTls"] = config.mqttUseTls;
         doc["mqttSkipCertVal"] = config.mqttSkipCertVal;
         doc["callbackSkipCertVal"] = config.callbackSkipCertVal;
@@ -299,6 +300,7 @@ void MailboxNetworkManager::setupWebServer() {
             config.autolock = request->hasArg("autolock");
             config.oneTimeOpening = request->hasArg("oneTimeOpening");
             config.devMode = request->hasArg("devMode");
+            config.hasMailCompartment = request->hasArg("hasMailCompartment");
             config.mqttSkipCertVal = request->hasArg("mqttSkipCertVal");
             config.callbackSkipCertVal = request->hasArg("callbackSkipCertVal");
         }, true);
@@ -357,6 +359,7 @@ void MailboxNetworkManager::setupWebServer() {
         doc["one_time_opening"] = settings.oneTimeOpening;
         doc["one_time_codes"] = configManager.getOneTimeCodesCopy();
         doc["dev_mode"] = settings.devMode;
+        doc["has_mail_compartment"] = settings.hasMailCompartment;
         doc["free_heap"] = (uint32_t)ESP.getFreeHeap();
         doc["uptime_ms"] = (unsigned long)millis();
         doc["mqtt_connected"] = mqttManager.isConnected();

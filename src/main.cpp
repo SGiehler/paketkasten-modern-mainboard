@@ -479,7 +479,10 @@ void receivedWiegandCode(char* code, uint8_t bits) {
   AccessType result = AccessControl::evaluate(code, config.ownerCodes.c_str(), config.deliveryCodes.c_str(), &labelOut, bits);
   
   if (result == AccessType::OPEN_MAIL) {
-    if (requestMailOpening(labelOut.c_str())) {
+    bool opened = config.hasMailCompartment
+        ? requestMailOpening(labelOut.c_str())
+        : requestParcelOpening(labelOut.c_str());
+    if (opened) {
       if (deliveryBlocked) {
         configManager.saveDeliveryBlocked(false);
         telemetryLog.logf("ACCESS", "Delivery block reset by owner '%s'", labelOut.c_str());

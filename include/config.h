@@ -24,6 +24,7 @@ struct Config {
   bool mqttSkipCertVal;
   bool callbackSkipCertVal;
   bool devMode;      // enables live buffered telemetry panel in WebUI
+  bool hasMailCompartment; // true = mailbox has separate mail slot (Brieffach); false = parcel only
 };
 
 const char* const PREFERENCES_NAMESPACE = "mailbox";
@@ -48,5 +49,6 @@ const char* const MQTT_USE_TLS_KEY = "mqttUseTls";
 const char* const MQTT_SKIP_CERT_VAL_KEY = "mqttSkipCert";
 const char* const CALLBACK_SKIP_CERT_VAL_KEY = "cbSkipCert";
 const char* const DEV_MODE_KEY = "devMode";
+const char* const HAS_MAIL_KEY = "hasMail";
 
 #endif

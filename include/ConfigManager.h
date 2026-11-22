@@ -11,6 +11,7 @@ struct MotorSettings {
     bool autolock;
     bool oneTimeOpening;
     bool devMode;
+    bool hasMailCompartment;
 };
 
 class ConfigManager {
