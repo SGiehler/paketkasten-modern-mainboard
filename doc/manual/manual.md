@@ -104,7 +104,7 @@ Laden Sie dazu die `firmware.bin` und `littlefs.bin` von der [Release-Seite](htt
 
 # Zugangskontrolle
 
-<img src="wiegand-einstellung.png" alt="Wiegand-Einstellung" height="400px">
+![Wiegand-Einstellung](../images/ui_access.jpg)
 
 Es gibt zwei Arten von Codes: Owner Codes und Delivery Codes.
 
@@ -113,4 +113,4 @@ Es gibt zwei Arten von Codes: Owner Codes und Delivery Codes.
 
 **Hinweis**: Wenn der Paketkasten Modern kein Brieffach besitzt (da dies optional ist), gibt es keinen Unterschied zwischen Owner Codes und Delivery Codes. In diesem Fall öffnen beide Code-Typen nur das Paketfach.
 
-Um einen Code hinzuzufügen, geben Sie einen RFID-Chip oder Code am Wiegand-Keypad ein. Die "Last Wiegand ID" wird dann unter "Diagnostics" angezeigt. Diese ID muss anschließend in die Owner Codes oder Delivery Codes übernommen werden.
+Um einen Code hinzuzufügen, halten Sie einen RFID-Chip an den Leser oder geben Sie einen Code am Wiegand-Keypad ein. Unter **Access → Last Scanned Wiegand ID** wird die erkannte ID direkt angezeigt und kann per Klick auf **+ Owner** oder **+ Delivery** sofort übernommen werden.

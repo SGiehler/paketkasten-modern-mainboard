@@ -27,9 +27,9 @@ Dieses Projekt wurde ins Leben gerufen, um dem DHL Paketkasten, der von DHL zum 
 
 ## Features
 
-*   **Webinterface:** Eine moderne und intuitive Weboberfläche zur einfachen Konfiguration des Paketkastens.
-*   **MQTT-Integration:** Binden Sie Ihren Paketkasten nahtlos in Ihr Smart-Home-System ein.
-*   **WLAN-Konnektivität:** Verbinden Sie den Paketkasten einfach mit Ihrem heimischen WLAN.
+*   **Webinterface:** Eine moderne, responsive Weboberfläche (PC, Tablet & Smartphone, Light & Dark Mode) zur einfachen Steuerung und Konfiguration — inkl. Einmalcodes, Backup/Restore, OTA-Updates und optionaler Live-Telemetrie.
+*   **MQTT-Integration:** Binden Sie Ihren Paketkasten nahtlos (auch verschlüsselt per MQTTS/TLS) in Ihr Smart-Home-System ein.
+*   **WLAN-Konnektivität:** Verbinden Sie den Paketkasten einfach mit Ihrem heimischen WLAN (inkl. SoftAP-Einrichtungsmodus und automatischem Reconnect).
 *   **Universelle Kompatibilität:** Nutzen Sie eine breite Palette von Wiegand-basierten Zugangsgeräten wie RFID-Leser oder PIN-Tastaturen.
 *   **Kompatible Hardware:** Eine Liste der getesteten Wiegand-Geräte finden Sie in der [Wiegand-Hardware-Dokumentation](wiegand-hardware.md).
 
@@ -43,11 +43,19 @@ Eine detaillierte Anleitung zur Einrichtung und Nutzung des Paketkastens finden 
 
 ## Software
 
-Die Weboberfläche bietet eine einfache Möglichkeit, den Paketkasten zu konfigurieren und zu steuern.
+Die responsive Weboberfläche (100 % offline direkt vom ESP32) bietet eine übersichtliche Steuerung, Einmalcodes, Wiegand-Verwaltung sowie Motor-, Netzwerk- und MQTT-Einstellungen.
 
-**UI Beispiel**
+**Dashboard (Status, Sensor-Position, Steuerung & Einmalcodes)**
 
-![UI Beispiel](doc/images/UI_Sample.png)
+![WebUI Dashboard](doc/images/ui_dashboard.png)
+
+**Access (Wiegand-Scan mit 1-Klick-Übernahme, Owner- & Delivery-Codes)**
+
+![WebUI Access](doc/images/ui_access.jpg)
+
+**Settings (Slow-Decay Motorsteuerung, Melodien, WLAN, HTTP-Callback & MQTT/TLS)**
+
+![WebUI Settings](doc/images/ui_settings.jpg)
 
 ## Hardware
 
